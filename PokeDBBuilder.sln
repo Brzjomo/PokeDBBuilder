@@ -1,0 +1,25 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.10.35004.147
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PokeDBBuilder", "PokeDBBuilder\PokeDBBuilder.csproj", "{AEF3E354-1DE6-494A-A012-86C53817D56A}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{AEF3E354-1DE6-494A-A012-86C53817D56A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{AEF3E354-1DE6-494A-A012-86C53817D56A}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{AEF3E354-1DE6-494A-A012-86C53817D56A}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{AEF3E354-1DE6-494A-A012-86C53817D56A}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {18AB8C27-F90E-4BC9-9150-C438EE1F066C}
+	EndGlobalSection
+EndGlobal
