@@ -37,6 +37,9 @@
             LLB_File_2 = new LinkLabel();
             BTN_Open_F1 = new Button();
             LLB_File_1 = new LinkLabel();
+            label3 = new Label();
+            BTN_Open_F3 = new Button();
+            LLB_File_3 = new LinkLabel();
             tabControl1.SuspendLayout();
             TB_1.SuspendLayout();
             SuspendLayout();
@@ -47,11 +50,14 @@
             tabControl1.Location = new Point(12, 12);
             tabControl1.Name = "tabControl1";
             tabControl1.SelectedIndex = 0;
-            tabControl1.Size = new Size(468, 257);
+            tabControl1.Size = new Size(468, 300);
             tabControl1.TabIndex = 0;
             // 
             // TB_1
             // 
+            TB_1.Controls.Add(label3);
+            TB_1.Controls.Add(BTN_Open_F3);
+            TB_1.Controls.Add(LLB_File_3);
             TB_1.Controls.Add(BTN_Gen);
             TB_1.Controls.Add(label2);
             TB_1.Controls.Add(label1);
@@ -62,14 +68,14 @@
             TB_1.Location = new Point(4, 30);
             TB_1.Name = "TB_1";
             TB_1.Padding = new Padding(3);
-            TB_1.Size = new Size(460, 223);
+            TB_1.Size = new Size(460, 266);
             TB_1.TabIndex = 0;
             TB_1.Text = "数据库生成";
             TB_1.UseVisualStyleBackColor = true;
             // 
             // BTN_Gen
             // 
-            BTN_Gen.Location = new Point(29, 126);
+            BTN_Gen.Location = new Point(29, 166);
             BTN_Gen.Name = "BTN_Gen";
             BTN_Gen.Size = new Size(404, 77);
             BTN_Gen.TabIndex = 6;
@@ -80,7 +86,7 @@
             // label2
             // 
             label2.AutoSize = true;
-            label2.Location = new Point(29, 77);
+            label2.Location = new Point(29, 123);
             label2.Name = "label2";
             label2.Size = new Size(126, 21);
             label2.TabIndex = 5;
@@ -97,7 +103,7 @@
             // 
             // BTN_Open_F2
             // 
-            BTN_Open_F2.Location = new Point(328, 70);
+            BTN_Open_F2.Location = new Point(328, 116);
             BTN_Open_F2.Name = "BTN_Open_F2";
             BTN_Open_F2.Size = new Size(105, 34);
             BTN_Open_F2.TabIndex = 3;
@@ -109,7 +115,7 @@
             // 
             LLB_File_2.ActiveLinkColor = Color.Red;
             LLB_File_2.LinkColor = Color.FromArgb(255, 128, 0);
-            LLB_File_2.Location = new Point(161, 77);
+            LLB_File_2.Location = new Point(161, 123);
             LLB_File_2.Name = "LLB_File_2";
             LLB_File_2.Size = new Size(151, 21);
             LLB_File_2.TabIndex = 2;
@@ -139,11 +145,42 @@
             LLB_File_1.Text = "未打开";
             LLB_File_1.LinkClicked += LLB_File_1_LinkClicked;
             // 
+            // label3
+            // 
+            label3.AutoSize = true;
+            label3.Location = new Point(29, 75);
+            label3.Name = "label3";
+            label3.Size = new Size(122, 21);
+            label3.TabIndex = 9;
+            label3.Text = "Mega名称数据:";
+            // 
+            // BTN_Open_F3
+            // 
+            BTN_Open_F3.Location = new Point(328, 68);
+            BTN_Open_F3.Name = "BTN_Open_F3";
+            BTN_Open_F3.Size = new Size(105, 34);
+            BTN_Open_F3.TabIndex = 8;
+            BTN_Open_F3.Text = "打开";
+            BTN_Open_F3.UseVisualStyleBackColor = true;
+            BTN_Open_F3.Click += BTN_Open_F3_Click;
+            // 
+            // LLB_File_3
+            // 
+            LLB_File_3.ActiveLinkColor = Color.Red;
+            LLB_File_3.LinkColor = Color.FromArgb(255, 128, 0);
+            LLB_File_3.Location = new Point(161, 75);
+            LLB_File_3.Name = "LLB_File_3";
+            LLB_File_3.Size = new Size(151, 21);
+            LLB_File_3.TabIndex = 7;
+            LLB_File_3.TabStop = true;
+            LLB_File_3.Text = "未打开";
+            LLB_File_3.LinkClicked += LLB_File_3_LinkClicked;
+            // 
             // Form1
             // 
             AutoScaleDimensions = new SizeF(10F, 21F);
             AutoScaleMode = AutoScaleMode.Font;
-            ClientSize = new Size(494, 282);
+            ClientSize = new Size(494, 327);
             Controls.Add(tabControl1);
             Font = new Font("Microsoft YaHei UI", 12F);
             FormBorderStyle = FormBorderStyle.FixedSingle;
@@ -168,5 +205,8 @@
         private Label label2;
         private Label label1;
         private Button BTN_Gen;
+        private Label label3;
+        private Button BTN_Open_F3;
+        private LinkLabel LLB_File_3;
     }
 }
