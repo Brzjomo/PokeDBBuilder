@@ -1,7 +1,6 @@
-using System.Collections.Generic;
 using System.Data.SQLite;
-using System.Linq.Expressions;
 using System.Text;
+using Application = System.Windows.Forms.Application;
 
 namespace PokeDBBuilder
 {
@@ -18,8 +17,10 @@ namespace PokeDBBuilder
         private static List<string> pokeNameList = [];
         private static List<string> pokeMegaNameList = [];
         private static readonly List<int> pokeMegaDexListFromXY = [3, 6, 9, 65, 94, 115, 127, 130, 142, 150, 181, 212, 214, 229, 248, 257, 282, 303, 306, 308, 310, 354, 359, 380, 381, 445, 448, 460];
-        private static readonly List<int> pokeMegaDexListFroORAS = [15, 18, 80, 208, 254, 260, 302, 319, 323, 334, 362, 373, 376, 384, 428, 475, 531, 719];
+        private static readonly List<int> pokeMegaDexListFromORAS = [15, 18, 80, 208, 254, 260, 302, 319, 323, 334, 362, 373, 376, 384, 428, 475, 531, 719];
         private static List<int> pokeMegaDexList = [];
+
+        private static List<PokeData> pokeDatas = [];
 
         public Form1()
         {
@@ -267,12 +268,6 @@ namespace PokeDBBuilder
                 string openFileName = fileName[^1];
                 LLB_File_1.Text = openFileName;
             }
-
-            if (openFileDialog.FileName == "选择一个txt文件")
-            {
-                MessageBox.Show("请选择一个文件。", "未选择文件", MessageBoxButtons.OK, MessageBoxIcon.Stop);
-                return;
-            }
         }
 
         private void BTN_Open_F2_Click(object sender, EventArgs e)
@@ -295,12 +290,6 @@ namespace PokeDBBuilder
                 string openFileName = fileName[^1];
                 LLB_File_2.Text = openFileName;
             }
-
-            if (openFileDialog.FileName == "选择一个txt文件")
-            {
-                MessageBox.Show("请选择一个文件。", "未选择文件", MessageBoxButtons.OK, MessageBoxIcon.Stop);
-                return;
-            }
         }
 
         private void BTN_Open_F3_Click(object sender, EventArgs e)
@@ -322,12 +311,6 @@ namespace PokeDBBuilder
                 string[] fileName = openFileDialog.FileName.Split("\\");
                 string openFileName = fileName[^1];
                 LLB_File_3.Text = openFileName;
-            }
-
-            if (openFileDialog.FileName == "选择一个txt文件")
-            {
-                MessageBox.Show("请选择一个文件。", "未选择文件", MessageBoxButtons.OK, MessageBoxIcon.Stop);
-                return;
             }
         }
 
@@ -531,14 +514,83 @@ namespace PokeDBBuilder
         // 自动生成Mega Name数据
         private static void GenMegaNameFromDB()
         {
-            pokeMegaDexList = pokeMegaDexListFromXY.Concat(pokeMegaDexListFroORAS).ToList();
+            pokeMegaDexList = pokeMegaDexListFromXY.Concat(pokeMegaDexListFromORAS).ToList();
             QuickSort(pokeMegaDexList, 0, pokeMegaDexList.Count - 1);
+        }
+
+        // 读取获取种族值等数据
+        private async static Task ReadPokeDataFromFile()
+        {
+            // pokeNameList.Clear();
+
+            // 读取源文件
+            var inputStream = new StreamReader(pokeDataFilePath, Encoding.UTF8);
+            var input = await inputStream.ReadToEndAsync();
+            inputStream.Close();
+
+            // 按行分割
+            string[] separator = ["--------------------------------------------"];
+            string[] inputString = input.Split(separator, StringSplitOptions.None);
+
+            List<List<string>> pokeDataLists = [];
+
+            // 去除空行和制表符
+            foreach (var line in inputString)
+            {
+                if (line != "")
+                {
+                    List<string> pokeDataList = [];
+                    string[] _inputString = line.Split(['\r', '\n']);
+                    foreach (var line2 in _inputString)
+                    {
+                        if (line2 != "")
+                        {
+                            if (line2.Contains('\t'))
+                            {
+                                pokeDataList.Add(line2.Trim(['\t']));
+                            }
+                            else
+                            {
+                                pokeDataList.Add(line2);
+                            }
+                        }
+                    }
+                    pokeDataLists.Add(pokeDataList);
+                }
+            }
+
+            // 处理数据
+            foreach (var item in pokeDataLists)
+            {
+                var pokeName = item[1].Trim();
+                bool ifMegaForm = pokeName.Contains('1') && !pokeName.Contains("岩狗狗");
+
+                if (ifMegaForm)
+                {
+                    pokeName = "超级" + pokeName;
+                }
+
+                var poke = new PokeData(pokeName);
+
+                if (ifMegaForm)
+                {
+                    poke.ifMegaForm = ifMegaForm;
+                }
+
+                // 更新数据
+
+                pokeDatas.Add(poke);
+            }
+
+            // 通过名称查询图鉴号
         }
 
         // 主逻辑
         private async void BTN_Gen_Click(object sender, EventArgs e)
         {
-            if (pokeNameFilePath == string.Empty)
+            BTN_Gen.Enabled = false;
+
+/*            if (pokeNameFilePath == string.Empty)
             {
                 return;
             }
@@ -560,8 +612,12 @@ namespace PokeDBBuilder
 
             InserPokeDexNumber();
 
-            UpdateMegaName();
+            UpdateMegaName();*/
 
+            //
+            await ReadPokeDataFromFile();
+
+            BTN_Gen.Enabled = true;
             // 提示完成
             MessageBox.Show("运行完毕", "提示", MessageBoxButtons.OK, MessageBoxIcon.None);
         }
