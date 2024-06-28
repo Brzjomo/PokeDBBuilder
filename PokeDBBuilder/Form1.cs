@@ -17,6 +17,8 @@ namespace PokeDBBuilder
         private static List<string> pokeNameList = [];
         private static List<string> pokeMegaNameList = [];
 
+        Dictionary<int, string[]> megaDict = [];
+
         Dictionary<int, string[]> nationalNumberAndNamesDict = [];
         Dictionary<int, string[]> nationalNumberAndMegaNamesDict = [];
         private static List<PokeData> pokeDatas = [];
@@ -194,6 +196,32 @@ namespace PokeDBBuilder
             connection.Open();
 
             string query = $"SELECT nationalNumber, name FROM {DBtable}";
+            using (SQLiteCommand command = new SQLiteCommand(query, connection))
+            {
+                using (SQLiteDataReader reader = command.ExecuteReader())
+                {
+                    while (reader.Read())
+                    {
+                        int _nationalNumber = Int16.Parse(reader["nationalNumber"].ToString());
+                        string _name = reader["name"].ToString();
+                        string[] _nameList = _name.Split(',');
+
+                        dict[_nationalNumber] = _nameList;
+                    }
+                }
+            }
+
+            connection.Close();
+        }
+
+        private void GetNationalNumberAndNameDict(string DBtable, Dictionary<int, string[]> dict, List<int> dexList)
+        {
+            dict.Clear();
+
+            var connection = CreateSQLiteConnection();
+            connection.Open();
+
+            string query = $"SELECT nationalNumber, name FROM {DBtable} WHERE nationalNumber IN {dexList}";
             using (SQLiteCommand command = new SQLiteCommand(query, connection))
             {
                 using (SQLiteDataReader reader = command.ExecuteReader())
@@ -542,6 +570,54 @@ namespace PokeDBBuilder
                     }
                     pokeDataLists.Add(pokeDataList);
                 }
+            }
+
+            // 分开处理
+            List<List<string>> normalPokes = [];
+            List<List<string>> extraPokes = [];
+            List<List<string>> megaPokes = [];
+
+            foreach (var item in pokeDataLists)
+            {
+                var number = Int16.Parse(item[0].Trim());
+
+                if (number < 808)
+                {
+                    normalPokes.Add(item);
+                } else
+                {
+                    extraPokes.Add(item);
+                }
+            }
+
+            // 筛选mega
+            GetNationalNumberAndNameDict(DBPokeTable, megaDict, PokeData.getMegaList());
+
+            foreach (var item in extraPokes)
+            {
+                var pokeName = item[1].Trim().Split(' ')[0];
+
+                foreach (var kvp in megaDict)
+                {
+                    if (kvp.Value[7] == pokeName)
+                    {
+                        megaPokes.Add(item);
+                    }
+                }
+            }
+
+            // 处理普通
+            List<string> pokeDataNormalList = [];
+            foreach (var item in normalPokes)
+            {
+                var pokeName = item[1].Trim();
+            }
+
+            // 处理mega
+            List<string> pokeDataMegaList = [];
+            foreach (var item in megaPokes)
+            {
+                var pokeName = "超级" + item[1].Trim().Split(' ')[0];
             }
 
             List<string> pokeDataNameList = [];
