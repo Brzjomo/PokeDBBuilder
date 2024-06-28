@@ -18,14 +18,20 @@ namespace PokeDBBuilder
         private static List<string> pokeMegaNameList = [];
 
         Dictionary<int, string[]> megaDict = [];
-
         Dictionary<int, string[]> nationalNumberAndNamesDict = [];
         Dictionary<int, string[]> nationalNumberAndMegaNamesDict = [];
         private static List<PokeData> pokeDatas = [];
+        private static List<PokeData> megaPokeDatas = [];
 
         public Form1()
         {
             InitializeComponent();
+        }
+
+        private static void DeleteDB()
+        {
+            string dbFilePath = Path.Combine(Path.GetDirectoryName(Application.ExecutablePath), pokeDB);
+            File.Delete(dbFilePath);
         }
 
         private SQLiteConnection CreateSQLiteConnection()
@@ -94,7 +100,7 @@ namespace PokeDBBuilder
                 }
                 catch
                 {
-                    MessageBox.Show(pokeName, "Debug", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    MessageBox.Show(pokeName, "Debug-InsertPokeName()", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 }
             }
 
@@ -112,18 +118,10 @@ namespace PokeDBBuilder
             if (pokeMegaNameFilePath == string.Empty)
             {
                 // 复制到Mega表
-                StringBuilder sb = new();
-                foreach (var item in PokeData.getMegaList())
-                {
-                    sb.Append(item.ToString());
-                    sb.Append(", ");
-                }
-                if (sb.Length > 0)
-                {
-                    sb.Length -= 2;
-                }
+                List<int> megaList = PokeData.getMegaList();
+                string megaValues = string.Join(", ", megaList);
 
-                var query = "INSERT INTO " + DBMegaTable + " SELECT * FROM " + DBPokeTable + " WHERE nationalNumber IN (" + sb.ToString() + ")";
+                var query = $"INSERT INTO {DBMegaTable} SELECT * FROM {DBPokeTable} WHERE nationalNumber IN ({megaValues})";
                 var copyMega = new SQLiteCommand(query, connection);
                 try
                 {
@@ -131,7 +129,7 @@ namespace PokeDBBuilder
                 }
                 catch (Exception ex)
                 {
-                    MessageBox.Show(query + "\n" + ex.Message, "Debug", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    MessageBox.Show(query + "\n" + ex.Message, "Debug-InsertPokeDexNumber()", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 }
             }
 
@@ -152,9 +150,7 @@ namespace PokeDBBuilder
                     while (reader.Read())
                     {
                         string name = reader["name"].ToString();
-                        //MessageBox.Show(name, "Debug", MessageBoxButtons.OK, MessageBoxIcon.Error);
                         string updatedName = UpdateName(name);
-                        //MessageBox.Show(updatedName, "Debug", MessageBoxButtons.OK, MessageBoxIcon.Error);
 
                         // 更新name列的值
                         string updateQuery = $"UPDATE {DBMegaTable} SET name = '{updatedName}' WHERE name = '{name}'";
@@ -188,14 +184,14 @@ namespace PokeDBBuilder
             return string.Join(",", elements);
         }
 
-        private void GetNationalNumberAndNameDict(string DBtable, Dictionary<int, string[]> dict)
+        private void GetNationalNumberAndNameDict(string DBTable, Dictionary<int, string[]> dict)
         {
             dict.Clear();
 
             var connection = CreateSQLiteConnection();
             connection.Open();
 
-            string query = $"SELECT nationalNumber, name FROM {DBtable}";
+            string query = $"SELECT nationalNumber, name FROM {DBTable}";
             using (SQLiteCommand command = new SQLiteCommand(query, connection))
             {
                 using (SQLiteDataReader reader = command.ExecuteReader())
@@ -214,14 +210,15 @@ namespace PokeDBBuilder
             connection.Close();
         }
 
-        private void GetNationalNumberAndNameDict(string DBtable, Dictionary<int, string[]> dict, List<int> dexList)
+        private void GetNationalNumberAndNameDict(string DBTable, Dictionary<int, string[]> dict, List<int> dexList)
         {
             dict.Clear();
 
             var connection = CreateSQLiteConnection();
             connection.Open();
 
-            string query = $"SELECT nationalNumber, name FROM {DBtable} WHERE nationalNumber IN {dexList}";
+            string dexValues = string.Join(", ", dexList);
+            string query = $"SELECT nationalNumber, name FROM {DBTable} WHERE nationalNumber IN ({dexValues})";
             using (SQLiteCommand command = new SQLiteCommand(query, connection))
             {
                 using (SQLiteDataReader reader = command.ExecuteReader())
@@ -234,6 +231,34 @@ namespace PokeDBBuilder
 
                         dict[_nationalNumber] = _nameList;
                     }
+                }
+            }
+
+            connection.Close();
+        }
+
+        private void UpdatePokeDatas(string DBTable, List<PokeData> list)
+        {
+            var connection = CreateSQLiteConnection();
+            connection.Open();
+
+            foreach (var poke in list)
+            {
+                var nationalNumber = poke.nationalNumber;
+                var type = string.Join(",", poke.type);
+                var abilities = string.Join(",", poke.abilities);
+                var BST = string.Join(",", Array.ConvertAll(poke.BST, x => x.ToString()));
+                var evolutionaryStage = poke.evolutionaryStage.ToString();
+                var ifFinalStage = poke.ifFinalStage.ToString();
+                var ifMegaForm = poke.ifMegaForm.ToString();
+                var ifLegendary = poke.ifLegendary.ToString();
+
+                string query = $"UPDATE {DBTable} SET type = '{type}', abilities = '{abilities}', BST = '{BST}', evolutionaryStage = '{evolutionaryStage}'," +
+                    $" ifFinalStage = '{ifFinalStage}', ifMegaForm = '{ifMegaForm}', ifLegendary = '{ifLegendary}' WHERE nationalNumber = {nationalNumber}";
+
+                using (SQLiteCommand command = new SQLiteCommand(query, connection))
+                {
+                    command.ExecuteNonQuery();
                 }
             }
 
@@ -535,6 +560,7 @@ namespace PokeDBBuilder
         private async Task ReadPokeDataFromFile()
         {
             pokeDatas.Clear();
+            megaPokeDatas.Clear();
 
             // 读取源文件
             var inputStream = new StreamReader(pokeDataFilePath, Encoding.UTF8);
@@ -606,57 +632,21 @@ namespace PokeDBBuilder
                 }
             }
 
-            // 处理普通
-            List<string> pokeDataNormalList = [];
+            // 更新普通数据
+            List<string> pokeNameList = [];
+
             foreach (var item in normalPokes)
             {
                 var pokeName = item[1].Trim();
-            }
-
-            // 处理mega
-            List<string> pokeDataMegaList = [];
-            foreach (var item in megaPokes)
-            {
-                var pokeName = "超级" + item[1].Trim().Split(' ')[0];
-            }
-
-            List<string> pokeDataNameList = [];
-            List<string> pokeDataBlackList = ["岩狗狗 1", "蝶结萌虻 1", "托戈德玛尔 1", "滴蛛霸 1", "奈克洛兹玛 3", "奈克洛兹玛 2", "奈克洛兹玛 1", "杖尾鳞甲龙 1", "焰后蜥 1", "兰螳花 1", "锹农炮虫 1", "猫鼬探长 1",
-                "皮卡丘 7", "皮卡丘 6", "皮卡丘 5", "皮卡丘 4", "皮卡丘 3", "皮卡丘 2", "皮卡丘 1", "玛机雅娜 1", "谜拟丘 3", "谜拟丘 2", "谜拟丘 1", "三地鼠 1", "地鼠 1", "小陨星 13", "小陨星 12", "小陨星 11",
-                "小陨星 10", "小陨星 9", "小陨星 8", "小陨星 7", "小陨星 6", "小陨星 5", "小陨星 4", "小陨星 3", "小陨星 2", "小陨星 1", "基格尔德 4", "基格尔德 3", "基格尔德 2", "基格尔德 1", "甲贺忍蛙 2",
-                "甲贺忍蛙 1", "嘎啦嘎啦 2", "嘎啦嘎啦 1", "椰蛋树 1", "臭臭泥 1", "臭泥 1", "隆隆岩 1", "隆隆石 1", "小拳石 1", "猫老大 1", "喵喵 1", "九尾 1", "六尾 1", "穿山王 1", "穿山鼠 1", "雷丘 1", "拉达 2",
-                "拉达 1", "小拉达 1", "鬃岩狼人 2", "鬃岩狼人 1", "花舞鸟 3", "花舞鸟 2", "花舞鸟 1", "弱丁鱼 1", "花叶蒂 5", "花叶蒂 4", "花叶蒂 3", "花叶蒂 2", "花叶蒂 1", "南瓜怪人 3", "南瓜怪人 2", "南瓜怪人 1",
-                "南瓜精 3", "南瓜精 2", "南瓜精 1", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", ""];
-
-            // 处理数据
-            foreach (var item in pokeDataLists)
-            {
-                var pokeName = item[1].Trim();
-
-                // 更改Mega名称
-                bool ifMegaForm = pokeName.Contains('1') && !pokeDataBlackList.Contains(pokeName);
-
-                if (ifMegaForm)
+                if (!pokeNameList.Contains(pokeName))
                 {
-                    pokeName = pokeName.Replace(" 1", "");
-                    pokeName = "超级" + pokeName;
-                }
-
-                if (!pokeDataNameList.Contains(pokeName) && !pokeDataBlackList.Contains(pokeName))
-                {
-                    pokeDataNameList.Add(pokeName);
+                    pokeNameList.Add(pokeName);
                 } else
                 {
                     continue;
                 }
 
                 var poke = new PokeData(pokeName);
-
-                // 判断是否Mega
-                if (ifMegaForm)
-                {
-                    poke.ifMegaForm = ifMegaForm;
-                }
 
                 // 获取属性
                 string[] temp_type = item[7].Split(':')[1].Split('/');
@@ -710,25 +700,12 @@ namespace PokeDBBuilder
 
                 // 查询全国图鉴编号
                 GetNationalNumberAndNameDict(DBPokeTable, nationalNumberAndNamesDict);
-                GetNationalNumberAndNameDict(DBMegaTable, nationalNumberAndMegaNamesDict);
 
-                if (!ifMegaForm)
+                foreach (var kvp in nationalNumberAndNamesDict)
                 {
-                    foreach (var kvp in nationalNumberAndNamesDict)
+                    if (pokeName == kvp.Value[7])
                     {
-                        if (pokeName == kvp.Value[7])
-                        {
-                            poke.nationalNumber = kvp.Key;
-                        }
-                    }
-                } else
-                {
-                    foreach (var kvp in nationalNumberAndMegaNamesDict)
-                    {
-                        if (pokeName == kvp.Value[7])
-                        {
-                            poke.nationalNumber = kvp.Key;
-                        }
+                        poke.nationalNumber = kvp.Key;
                     }
                 }
 
@@ -736,10 +713,14 @@ namespace PokeDBBuilder
                 if (PokeData.pokeFinalStageList.Contains(poke.nationalNumber))
                 {
                     poke.ifFinalStage = true;
-                } else
+                }
+                else
                 {
                     poke.ifFinalStage = false;
                 }
+
+                // mega
+                poke.ifMegaForm = false;
 
                 // 判断是否传说
                 if (PokeData.pokeLegendaryList.Contains(poke.nationalNumber))
@@ -751,7 +732,113 @@ namespace PokeDBBuilder
                     poke.ifLegendary = false;
                 }
 
+                // 增加至列表
                 pokeDatas.Add(poke);
+            }
+
+            // 更新mega数据
+            List<string> pokeNameMegaList = [];
+
+            foreach (var item in megaPokes)
+            {
+                var pokeName = "超级" + item[1].Trim().Split(' ')[0];
+                if (!pokeNameMegaList.Contains(pokeName))
+                {
+                    pokeNameMegaList.Add(pokeName);
+                }
+                else
+                {
+                    continue;
+                }
+
+                var poke = new PokeData(pokeName);
+
+                // 获取属性
+                string[] temp_type = item[7].Split(':')[1].Split('/');
+                foreach (var line in temp_type)
+                {
+                    if (line != "")
+                    {
+                        poke.type.Add(line.Trim());
+                    }
+                }
+
+                // 获取特性
+                string[] temp_abilities = item[8].Split(':')[1].Split('|');
+                foreach (var line in temp_abilities)
+                {
+                    if (line != "")
+                    {
+                        var ability = line.Trim().Split(' ')[0];
+
+                        if (poke.abilities.Count < 1 || !poke.abilities.Contains(ability))
+                        {
+                            poke.abilities.Add(ability);
+                        }
+                    }
+                }
+
+                // 获取BST
+                string[] temp_BST = item[5].Split(':')[1].Trim().Split('.');
+                for (int i = 0; i < temp_BST.Length; i++)
+                {
+                    try
+                    {
+                        poke.BST[i] = Int16.Parse(temp_BST[i]);
+                    }
+                    catch
+                    {
+                        MessageBox.Show("BST不是一个有效的值", "错误", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    }
+                }
+
+                // 获取进化阶段
+                string stage = item[2].Split(':')[1].Trim();
+                try
+                {
+                    poke.evolutionaryStage = Int16.Parse(stage);
+                }
+                catch
+                {
+                    MessageBox.Show("进化阶段不是一个有效的值", "错误", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                }
+
+                // 查询全国图鉴编号
+                GetNationalNumberAndNameDict(DBMegaTable, nationalNumberAndMegaNamesDict);
+
+                foreach (var kvp in nationalNumberAndMegaNamesDict)
+                {
+                    if (pokeName == kvp.Value[7])
+                    {
+                        poke.nationalNumber = kvp.Key;
+                    }
+                }
+
+                // 判断是否最终阶段
+                if (PokeData.pokeFinalStageList.Contains(poke.nationalNumber))
+                {
+                    poke.ifFinalStage = true;
+                }
+                else
+                {
+                    poke.ifFinalStage = false;
+                }
+
+                // mega
+                poke.ifMegaForm = true;
+
+                // 判断是否传说
+                if (PokeData.pokeLegendaryList.Contains(poke.nationalNumber))
+                {
+                    poke.ifLegendary = true;
+                }
+                else
+                {
+                    poke.ifLegendary = false;
+                }
+
+                // 增加至列表
+                megaPokeDatas.Add(poke);
             }
         }
 
@@ -759,6 +846,9 @@ namespace PokeDBBuilder
         private async void BTN_Gen_Click(object sender, EventArgs e)
         {
             BTN_Gen.Enabled = false;
+
+            // 删除已有的数据库
+            DeleteDB();
 
             if (pokeNameFilePath == string.Empty)
             {
@@ -784,6 +874,8 @@ namespace PokeDBBuilder
             await ReadPokeDataFromFile();
 
             // 更新数据库
+            UpdatePokeDatas(DBPokeTable, pokeDatas);
+            UpdatePokeDatas(DBMegaTable, megaPokeDatas);
 
             BTN_Gen.Enabled = true;
 

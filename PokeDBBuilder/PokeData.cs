@@ -4,8 +4,8 @@
     {
         public int nationalNumber;
         public string name;
-        public List<string>? type;
-        public List<string>? abilities;
+        public List<string> type = [];
+        public List<string> abilities = [];
         public int[] BST = new int[6];
         public int evolutionaryStage;
         public bool ifFinalStage;
