@@ -23,15 +23,38 @@ namespace PokeDBBuilder
         private static List<PokeData> pokeDatas = [];
         private static List<PokeData> megaPokeDatas = [];
 
+        System.Windows.Forms.Timer timer;
+        DateTime startTime;
+        TimeSpan elapsedTime;
+
         public Form1()
         {
             InitializeComponent();
+
+            timer = new System.Windows.Forms.Timer();
+            timer.Interval = 1000;
+            timer.Tick += Timer_Tick;
+        }
+
+        private void Timer_Tick(object sender, EventArgs e)
+        {
+            elapsedTime = DateTime.Now - startTime;
+            Text = "PokeDBBuilder" + "  已运行：" + elapsedTime.ToString(@"hh\:mm\:ss");
+        }
+
+        private void CleanFormTitle()
+        {
+            Text = "PokeDBBuilder";
         }
 
         private static void DeleteDB()
         {
             string dbFilePath = Path.Combine(Path.GetDirectoryName(Application.ExecutablePath), pokeDB);
-            File.Delete(dbFilePath);
+
+            if (File.Exists(dbFilePath))
+            {
+                File.Delete(dbFilePath);
+            }
         }
 
         private SQLiteConnection CreateSQLiteConnection()
@@ -847,8 +870,22 @@ namespace PokeDBBuilder
         {
             BTN_Gen.Enabled = false;
 
+            startTime = DateTime.Now;
+            timer.Start();
+
             // 删除已有的数据库
-            DeleteDB();
+            try
+            {
+                DeleteDB();
+            }
+            catch
+            {
+                timer.Stop();
+                CleanFormTitle();
+                BTN_Gen.Enabled = true;
+                MessageBox.Show("删除现有数据库失败,\n请确认没有被其他程序占用。", "错误", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                return;
+            }
 
             if (pokeNameFilePath == string.Empty)
             {
@@ -879,7 +916,45 @@ namespace PokeDBBuilder
 
             BTN_Gen.Enabled = true;
 
+            timer.Stop();
+            CleanFormTitle();
+
             // 提示完成
+            MessageBox.Show("运行完毕\n耗时：" + elapsedTime.ToString(@"mm\分ss\秒"), "提示", MessageBoxButtons.OK, MessageBoxIcon.None);
+        }
+
+        // 临时处理元数据用
+        string filePath = @"C:\Users\brzjomo\Downloads\6-29.txt";
+        private async Task ProcessNumberList()
+        {
+            // 读取源文件
+            var inputStream = new StreamReader(filePath, Encoding.UTF8);
+            var input = await inputStream.ReadToEndAsync();
+            inputStream.Close();
+
+            // 按行分割
+            string[] inputString = input.Split(['\r', '\n']);
+
+            List<string> sourceList = [];
+
+            // 去除空行和制表符
+            foreach (var line in inputString)
+            {
+                if (line != "")
+                {
+                    if (line.Contains('\t') && !sourceList.Contains(line.Trim(['\t'])))
+                    {
+                        sourceList.Add(line.Trim(['\t']));
+                    }
+                    else if (!sourceList.Contains(line))
+                    {
+                        sourceList.Add(line);
+                    }
+                }
+            }
+            string output = string.Join(", ", sourceList.Select(num => Int16.Parse(num)));
+            Clipboard.SetText(output);
+
             MessageBox.Show("运行完毕", "提示", MessageBoxButtons.OK, MessageBoxIcon.None);
         }
     }
