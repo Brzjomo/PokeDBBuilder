@@ -8,7 +8,6 @@
         public List<string> abilities = [];
         public int[] BST = new int[6];
         public int evolutionaryStage;
-        public int[] evolutionFamily = [];
         public bool ifFinalStage;
         public bool ifMegaForm;
         public bool ifLegendary;
@@ -42,7 +41,7 @@
         }
 
         public PokeData(int _nationalNumber, string _name, List<string> _type, List<string> _abilities,
-            int[] _BST, int _evolutionaryStage, int[] _evolutionFamily, bool _ifFinalStage, bool _ifMegaForm, bool _ifLegendary)
+            int[] _BST, int _evolutionaryStage, bool _ifFinalStage, bool _ifMegaForm, bool _ifLegendary)
         {
             nationalNumber = _nationalNumber;
             name = _name;
@@ -50,7 +49,6 @@
             abilities = _abilities;
             BST = _BST;
             evolutionaryStage = _evolutionaryStage;
-            evolutionFamily = _evolutionFamily;
             ifFinalStage = _ifFinalStage;
             ifMegaForm = _ifMegaForm;
             ifLegendary = _ifLegendary;

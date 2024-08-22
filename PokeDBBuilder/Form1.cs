@@ -98,7 +98,6 @@ namespace PokeDBBuilder
                     "abilities TEXT, " +
                     "BST TEXT, " +
                     "evolutionaryStage INTEGER, " +
-                    "evolutionFamily TEXT, " +
                     "ifFinalStage BOOL, " +
                     "ifMegaForm BOOL, " +
                     "ifLegendary BOOL)"
