@@ -30,6 +30,9 @@
         {
             tabControl1 = new TabControl();
             TB_1 = new TabPage();
+            label3 = new Label();
+            BTN_Open_F3 = new Button();
+            LLB_File_3 = new LinkLabel();
             BTN_Gen = new Button();
             label2 = new Label();
             label1 = new Label();
@@ -37,16 +40,17 @@
             LLB_File_2 = new LinkLabel();
             BTN_Open_F1 = new Button();
             LLB_File_1 = new LinkLabel();
-            label3 = new Label();
-            BTN_Open_F3 = new Button();
-            LLB_File_3 = new LinkLabel();
+            TB_2 = new TabPage();
+            button1 = new Button();
             tabControl1.SuspendLayout();
             TB_1.SuspendLayout();
+            TB_2.SuspendLayout();
             SuspendLayout();
             // 
             // tabControl1
             // 
             tabControl1.Controls.Add(TB_1);
+            tabControl1.Controls.Add(TB_2);
             tabControl1.Location = new Point(12, 12);
             tabControl1.Name = "tabControl1";
             tabControl1.SelectedIndex = 0;
@@ -70,8 +74,39 @@
             TB_1.Padding = new Padding(3);
             TB_1.Size = new Size(460, 266);
             TB_1.TabIndex = 0;
-            TB_1.Text = "数据库生成";
+            TB_1.Text = "从txt生成";
             TB_1.UseVisualStyleBackColor = true;
+            // 
+            // label3
+            // 
+            label3.AutoSize = true;
+            label3.Location = new Point(29, 75);
+            label3.Name = "label3";
+            label3.Size = new Size(122, 21);
+            label3.TabIndex = 9;
+            label3.Text = "Mega名称数据:";
+            // 
+            // BTN_Open_F3
+            // 
+            BTN_Open_F3.Location = new Point(328, 68);
+            BTN_Open_F3.Name = "BTN_Open_F3";
+            BTN_Open_F3.Size = new Size(105, 34);
+            BTN_Open_F3.TabIndex = 8;
+            BTN_Open_F3.Text = "打开";
+            BTN_Open_F3.UseVisualStyleBackColor = true;
+            BTN_Open_F3.Click += BTN_Open_F3_Click;
+            // 
+            // LLB_File_3
+            // 
+            LLB_File_3.ActiveLinkColor = Color.Red;
+            LLB_File_3.LinkColor = Color.FromArgb(255, 128, 0);
+            LLB_File_3.Location = new Point(161, 75);
+            LLB_File_3.Name = "LLB_File_3";
+            LLB_File_3.Size = new Size(151, 21);
+            LLB_File_3.TabIndex = 7;
+            LLB_File_3.TabStop = true;
+            LLB_File_3.Text = "未打开";
+            LLB_File_3.LinkClicked += LLB_File_3_LinkClicked;
             // 
             // BTN_Gen
             // 
@@ -145,36 +180,25 @@
             LLB_File_1.Text = "未打开";
             LLB_File_1.LinkClicked += LLB_File_1_LinkClicked;
             // 
-            // label3
+            // TB_2
             // 
-            label3.AutoSize = true;
-            label3.Location = new Point(29, 75);
-            label3.Name = "label3";
-            label3.Size = new Size(122, 21);
-            label3.TabIndex = 9;
-            label3.Text = "Mega名称数据:";
+            TB_2.Controls.Add(button1);
+            TB_2.Location = new Point(4, 30);
+            TB_2.Name = "TB_2";
+            TB_2.Padding = new Padding(3);
+            TB_2.Size = new Size(460, 266);
+            TB_2.TabIndex = 1;
+            TB_2.Text = "从网络生成";
+            TB_2.UseVisualStyleBackColor = true;
             // 
-            // BTN_Open_F3
+            // button1
             // 
-            BTN_Open_F3.Location = new Point(328, 68);
-            BTN_Open_F3.Name = "BTN_Open_F3";
-            BTN_Open_F3.Size = new Size(105, 34);
-            BTN_Open_F3.TabIndex = 8;
-            BTN_Open_F3.Text = "打开";
-            BTN_Open_F3.UseVisualStyleBackColor = true;
-            BTN_Open_F3.Click += BTN_Open_F3_Click;
-            // 
-            // LLB_File_3
-            // 
-            LLB_File_3.ActiveLinkColor = Color.Red;
-            LLB_File_3.LinkColor = Color.FromArgb(255, 128, 0);
-            LLB_File_3.Location = new Point(161, 75);
-            LLB_File_3.Name = "LLB_File_3";
-            LLB_File_3.Size = new Size(151, 21);
-            LLB_File_3.TabIndex = 7;
-            LLB_File_3.TabStop = true;
-            LLB_File_3.Text = "未打开";
-            LLB_File_3.LinkClicked += LLB_File_3_LinkClicked;
+            button1.Location = new Point(304, 210);
+            button1.Name = "button1";
+            button1.Size = new Size(150, 50);
+            button1.TabIndex = 0;
+            button1.Text = "生成";
+            button1.UseVisualStyleBackColor = true;
             // 
             // Form1
             // 
@@ -191,6 +215,7 @@
             tabControl1.ResumeLayout(false);
             TB_1.ResumeLayout(false);
             TB_1.PerformLayout();
+            TB_2.ResumeLayout(false);
             ResumeLayout(false);
         }
 
@@ -208,5 +233,7 @@
         private Label label3;
         private Button BTN_Open_F3;
         private LinkLabel LLB_File_3;
+        private TabPage TB_2;
+        private Button button1;
     }
 }

@@ -868,6 +868,11 @@ namespace PokeDBBuilder
         // 主逻辑
         private async void BTN_Gen_Click(object sender, EventArgs e)
         {
+            if (pokeNameFilePath == string.Empty || pokeDataFilePath == string.Empty)
+            {
+                return;
+            }
+
             BTN_Gen.Enabled = false;
 
             startTime = DateTime.Now;
@@ -884,11 +889,6 @@ namespace PokeDBBuilder
                 CleanFormTitle();
                 BTN_Gen.Enabled = true;
                 MessageBox.Show("删除现有数据库失败,\n请确认没有被其他程序占用。", "错误", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                return;
-            }
-
-            if (pokeNameFilePath == string.Empty)
-            {
                 return;
             }
 
