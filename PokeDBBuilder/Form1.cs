@@ -1,6 +1,8 @@
 using System.Data.SQLite;
+using System.Diagnostics;
 using System.Text;
 using Application = System.Windows.Forms.Application;
+using HtmlDocument = HtmlAgilityPack.HtmlDocument;
 
 namespace PokeDBBuilder
 {
@@ -196,10 +198,12 @@ namespace PokeDBBuilder
                 if (i == 7) // 第8个元素
                 {
                     elements[i] = "超级" + elements[i];
-                } else if (i == 8)
+                }
+                else if (i == 8)
                 {
                     elements[i] = "超級" + elements[i];
-                } else
+                }
+                else
                 {
                     elements[i] = elements[i] + " Mega";
                 }
@@ -633,7 +637,8 @@ namespace PokeDBBuilder
                 if (number < 808)
                 {
                     normalPokes.Add(item);
-                } else
+                }
+                else
                 {
                     extraPokes.Add(item);
                 }
@@ -664,7 +669,8 @@ namespace PokeDBBuilder
                 if (!pokeNameList.Contains(pokeName))
                 {
                     pokeNameList.Add(pokeName);
-                } else
+                }
+                else
                 {
                     continue;
                 }
@@ -923,39 +929,102 @@ namespace PokeDBBuilder
             MessageBox.Show("运行完毕\n耗时：" + elapsedTime.ToString(@"mm\分ss\秒"), "提示", MessageBoxButtons.OK, MessageBoxIcon.None);
         }
 
-        // 临时处理元数据用
-        string filePath = @"C:\Users\brzjomo\Downloads\6-29.txt";
-        private async Task ProcessNumberList()
+        // 从网络生成
+        private const string PokeWikiRootLink = "https://wiki.52poke.com";
+        private const string PokeSumLink = "https://wiki.52poke.com/wiki/%E5%AE%9D%E5%8F%AF%E6%A2%A6%E5%88%97%E8%A1%A8%EF%BC%88%E6%8C%89%E5%85%A8%E5%9B%BD%E5%9B%BE%E9%89%B4%E7%BC%96%E5%8F%B7%EF%BC%89/%E7%AE%80%E5%8D%95%E7%89%88";
+        private static List<string> pokeLinksList = [];
+        private static List<PokeData> pokeStats = [];
+
+        private async Task GetPokeLinks()
         {
-            // 读取源文件
-            var inputStream = new StreamReader(filePath, Encoding.UTF8);
-            var input = await inputStream.ReadToEndAsync();
-            inputStream.Close();
-
-            // 按行分割
-            string[] inputString = input.Split(['\r', '\n']);
-
-            List<string> sourceList = [];
-
-            // 去除空行和制表符
-            foreach (var line in inputString)
+            try
             {
-                if (line != "")
+                using (var httpClient = new HttpClient())
                 {
-                    if (line.Contains('\t') && !sourceList.Contains(line.Trim(['\t'])))
+                    // 设置用户代理
+                    httpClient.DefaultRequestHeaders.Add("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36");
+
+                    var html = await httpClient.GetStringAsync(PokeSumLink);
+                    var htmlDoc = new HtmlDocument();
+                    htmlDoc.LoadHtml(html);
+
+                    // 选择所有的tr元素
+                    var rows = htmlDoc.DocumentNode.SelectNodes("//tr");
+
+                    if (rows != null)
                     {
-                        sourceList.Add(line.Trim(['\t']));
+                        foreach (var row in rows)
+                        {
+                            // 获取第1和第2个td的内容
+                            var cells = row.SelectNodes("td");
+                            if (cells != null && cells.Count >= 3)
+                            {
+                                var firstCell = cells[0].InnerText.Trim();
+                                var secondCell = cells[1].InnerText.Trim();
+
+                                var linkNode = cells[1].SelectSingleNode(".//a");
+                                var link = linkNode != null ? PokeWikiRootLink + linkNode.GetAttributeValue("href", string.Empty) : string.Empty;
+
+                                pokeLinksList.Add(link);
+
+                                TB_Info.AppendText($"全国图鉴号: {firstCell}, 名称: {secondCell}, 链接: {link}\r\n");
+                                // Debug.WriteLine($"全国图鉴号: {firstCell}, 名称: {secondCell}, 链接: {link}");
+                            }
+                        }
                     }
-                    else if (!sourceList.Contains(line))
+                    else
                     {
-                        sourceList.Add(line);
+                        Debug.WriteLine("没有找到任何tr元素。");
                     }
                 }
             }
-            string output = string.Join(", ", sourceList.Select(num => Int16.Parse(num)));
-            Clipboard.SetText(output);
+            catch (Exception ex)
+            {
+                Clipboard.SetText(ex.Message);
+                MessageBox.Show($"发生错误: {ex.Message}");
+            }
+        }
 
-            MessageBox.Show("运行完毕", "提示", MessageBoxButtons.OK, MessageBoxIcon.None);
+        private async Task GetPokeStats()
+        {
+            try
+            {
+                using (var httpClient = new HttpClient())
+                {
+                    foreach (var pokeLink in pokeLinksList)
+                    {
+                        httpClient.DefaultRequestHeaders.Add("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36");
+
+                        var html = await httpClient.GetStringAsync(pokeLink);
+                        var htmlDoc = new HtmlDocument();
+                        htmlDoc.LoadHtml(html);
+
+                        // 获取所有必要信息，然后存储到pokedata对象
+
+                        var roundyTables = htmlDoc.DocumentNode.SelectNodes("//table[contains(@class, 'roundy')]");
+
+                        if (roundyTables != null)
+                        {
+                            
+                        }
+                        else
+                        {
+                            Debug.WriteLine("没有找到任何匹配元素。");
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Clipboard.SetText(ex.Message);
+                MessageBox.Show($"发生错误: {ex.Message}");
+            }
+        }
+
+        private async void button1_Click(object sender, EventArgs e)
+        {
+            TB_Info.Clear();
+            await GetPokeLinks();
         }
     }
 }

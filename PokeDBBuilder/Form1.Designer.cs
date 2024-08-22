@@ -42,6 +42,7 @@
             LLB_File_1 = new LinkLabel();
             TB_2 = new TabPage();
             button1 = new Button();
+            TB_Info = new TextBox();
             tabControl1.SuspendLayout();
             TB_1.SuspendLayout();
             TB_2.SuspendLayout();
@@ -182,6 +183,7 @@
             // 
             // TB_2
             // 
+            TB_2.Controls.Add(TB_Info);
             TB_2.Controls.Add(button1);
             TB_2.Location = new Point(4, 30);
             TB_2.Name = "TB_2";
@@ -199,6 +201,17 @@
             button1.TabIndex = 0;
             button1.Text = "生成";
             button1.UseVisualStyleBackColor = true;
+            button1.Click += button1_Click;
+            // 
+            // TB_Info
+            // 
+            TB_Info.Location = new Point(6, 6);
+            TB_Info.Multiline = true;
+            TB_Info.Name = "TB_Info";
+            TB_Info.ReadOnly = true;
+            TB_Info.ScrollBars = ScrollBars.Vertical;
+            TB_Info.Size = new Size(448, 198);
+            TB_Info.TabIndex = 1;
             // 
             // Form1
             // 
@@ -216,6 +229,7 @@
             TB_1.ResumeLayout(false);
             TB_1.PerformLayout();
             TB_2.ResumeLayout(false);
+            TB_2.PerformLayout();
             ResumeLayout(false);
         }
 
@@ -235,5 +249,6 @@
         private LinkLabel LLB_File_3;
         private TabPage TB_2;
         private Button button1;
+        private TextBox TB_Info;
     }
 }
