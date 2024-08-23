@@ -1,6 +1,7 @@
 using System.Data.SQLite;
 using System.Diagnostics;
 using System.Text;
+using System.Xml.Linq;
 using Application = System.Windows.Forms.Application;
 using HtmlDocument = HtmlAgilityPack.HtmlDocument;
 
@@ -953,12 +954,13 @@ namespace PokeDBBuilder
 
                     if (rows != null)
                     {
+                        int _count = 0;
                         foreach (var row in rows)
                         {
-                            // 获取第1和第2个td的内容
                             var cells = row.SelectNodes("td");
                             if (cells != null && cells.Count >= 3)
                             {
+                                _count++;
                                 var firstCell = cells[0].InnerText.Trim();
                                 var secondCell = cells[1].InnerText.Trim();
 
@@ -967,33 +969,50 @@ namespace PokeDBBuilder
 
                                 pokeLinksList.Add(link);
 
+                                Debug.WriteLine($"全国图鉴号: {firstCell}, 名称: {secondCell}, 链接: {link}");
                                 TB_Info.AppendText($"全国图鉴号: {firstCell}, 名称: {secondCell}, 链接: {link}\r\n");
-                                // Debug.WriteLine($"全国图鉴号: {firstCell}, 名称: {secondCell}, 链接: {link}");
+
+                                // debug
+                                if (_count >= 1)
+                                {
+                                    return;
+                                }
                             }
                         }
                     }
                     else
                     {
-                        Debug.WriteLine("没有找到任何tr元素。");
+                        Debug.WriteLine("当前阶段：[获取全部链接]，没有找到任何tr元素。");
+                        TB_Info.AppendText("当前阶段：[获取全部链接]，没有找到任何tr元素。\r\n");
                     }
                 }
             }
             catch (Exception ex)
             {
-                Clipboard.SetText(ex.Message);
-                MessageBox.Show($"发生错误: {ex.Message}");
+                TB_Info.AppendText($"当前阶段：[获取全部链接]，发生错误: {ex.Message}\r\n");
+                MessageBox.Show($"当前阶段：[获取全部链接]，发生错误: {ex.Message}");
             }
         }
 
-        private async Task GetPokeStats()
+        private async Task GetPokeBasicStats()
         {
             try
             {
                 using (var httpClient = new HttpClient())
                 {
+                    httpClient.DefaultRequestHeaders.Add("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36");
+                    int _count = 0;
                     foreach (var pokeLink in pokeLinksList)
                     {
-                        httpClient.DefaultRequestHeaders.Add("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36");
+                        _count++;
+
+                        // 随机延迟
+                        byte[] buffer = Guid.NewGuid().ToByteArray();
+                        int iSeed = BitConverter.ToInt32(buffer, 0);
+                        Random random = new Random(iSeed);
+                        int delay = random.Next(50, 1050);
+                        Debug.WriteLine($"当前阶段：[获取基础信息]，即将休眠：{delay} 毫秒");
+                        Thread.Sleep(delay);
 
                         var html = await httpClient.GetStringAsync(pokeLink);
                         var htmlDoc = new HtmlDocument();
@@ -1001,30 +1020,57 @@ namespace PokeDBBuilder
 
                         // 获取所有必要信息，然后存储到pokedata对象
 
-                        var roundyTables = htmlDoc.DocumentNode.SelectNodes("//table[contains(@class, 'roundy')]");
+                        // 获取基数信息
+                        var basicStatsTable = htmlDoc.DocumentNode.SelectNodes("//table[contains(@class, 'roundy')]")[2];
 
-                        if (roundyTables != null)
+                        if (basicStatsTable != null)
                         {
-                            
+                            var trRows = basicStatsTable.Element("tbody").Elements("tr").ToList();
+                            // 名称
+                            var row1 = trRows[0];
+                            var name = row1.Descendants("b").First().InnerText;
+
+                            // 全国图鉴号
+                            var _dexNumber = row1.Descendants("th").First().InnerText.Replace('#', '0');
+                            int.TryParse(_dexNumber, out int dexNumber);
+
+                            // 属性
+                            List<string> type = [];
+                            var row3 = trRows[2];
+                            var types = row3.Descendants("a").ToList();
+                            type.Add(types[1].InnerText);
+                            type.Add(types[2].InnerText);
+
+                            // 分类
+                            var row3td2 = row3.Elements("td").Last();
+                            var Category = row3td2.Descendants("a").ToList().Last().InnerText;
+
+                            // 特性
+                            Debug.WriteLine($"{dexNumber} - {name} - {Category}");
+
+                            Debug.WriteLine($"当前阶段：[获取基础信息]，已处理条目：{_count} / {pokeLinksList.Count}");
+                            TB_Info.AppendText($"当前阶段：[获取基础信息]，已处理条目：{_count} / {pokeLinksList.Count}\r\n");
                         }
                         else
                         {
-                            Debug.WriteLine("没有找到任何匹配元素。");
+                            Debug.WriteLine($"当前阶段：[获取基础信息]，没有找到任何匹配元素，当前条目：{_count}");
+                            TB_Info.AppendText($"当前阶段：[获取基础信息]，没有找到任何匹配元素，当前条目：{_count}\r\n");
                         }
                     }
                 }
             }
             catch (Exception ex)
             {
-                Clipboard.SetText(ex.Message);
-                MessageBox.Show($"发生错误: {ex.Message}");
+                TB_Info.AppendText($"当前阶段：[获取基础信息]，发生错误: {ex.Message}\r\n");
+                MessageBox.Show($"当前阶段：[获取基础信息]，发生错误: {ex.Message}");
             }
         }
 
-        private async void button1_Click(object sender, EventArgs e)
+        private async void Button1_Click(object sender, EventArgs e)
         {
             TB_Info.Clear();
             await GetPokeLinks();
+            await GetPokeBasicStats();
         }
     }
 }
