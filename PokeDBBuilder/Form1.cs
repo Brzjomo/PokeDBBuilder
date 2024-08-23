@@ -973,7 +973,7 @@ namespace PokeDBBuilder
                                 TB_Info.AppendText($"全国图鉴号: {firstCell}, 名称: {secondCell}, 链接: {link}\r\n");
 
                                 // debug
-                                if (_count >= 1)
+                                if (_count >= 20)
                                 {
                                     return;
                                 }
@@ -1007,12 +1007,16 @@ namespace PokeDBBuilder
                         _count++;
 
                         // 随机延迟
+                        bool shouldDelay = false;
                         byte[] buffer = Guid.NewGuid().ToByteArray();
                         int iSeed = BitConverter.ToInt32(buffer, 0);
                         Random random = new Random(iSeed);
                         int delay = random.Next(50, 1050);
-                        Debug.WriteLine($"当前阶段：[获取基础信息]，即将休眠：{delay} 毫秒");
-                        Thread.Sleep(delay);
+                        if (shouldDelay)
+                        {
+                            Debug.WriteLine($"当前阶段：[获取基础信息]，即将休眠：{delay} 毫秒");
+                            Thread.Sleep(delay);
+                        }
 
                         var html = await httpClient.GetStringAsync(pokeLink);
                         var htmlDoc = new HtmlDocument();
@@ -1039,14 +1043,57 @@ namespace PokeDBBuilder
                             var row3 = trRows[2];
                             var types = row3.Descendants("a").ToList();
                             type.Add(types[1].InnerText);
-                            type.Add(types[2].InnerText);
+                            if (!types[2].InnerText.Contains("分类"))
+                            {
+                                type.Add(types[2].InnerText);
+                            }
 
                             // 分类
                             var row3td2 = row3.Elements("td").Last();
-                            var Category = row3td2.Descendants("a").ToList().Last().InnerText;
+                            var category = row3td2.Descendants("a").ToList().Last().InnerText;
 
                             // 特性
-                            Debug.WriteLine($"{dexNumber} - {name} - {Category}");
+                            List<string> abilities = [];
+                            List<string> hiddenAbilities = [];
+                            bool hiddenAbilitiesExist = true;
+                            var row4 = trRows[3];
+                            var abilityNodes = row4.Descendants("tr").Last().Elements("td").ToList();
+
+                            if (abilityNodes.Count > 1)
+                            {
+                                // 普通特性
+                                foreach (var _ability in abilityNodes[0].Elements("a"))
+                                {
+                                    abilities.Add(_ability.InnerText);
+                                }
+
+                                // 隐藏特性
+                                foreach (var _ability in abilityNodes[1].Elements("a"))
+                                {
+                                    hiddenAbilities.Add(_ability.InnerText);
+                                }
+                            } else
+                            {
+                                hiddenAbilitiesExist = false;
+
+                                var _ability = row4.Element("td").Descendants("a").Last().InnerText;
+                                abilities.Add(_ability);
+                            }
+
+                            // 身高
+                            if (hiddenAbilitiesExist)
+                            {
+                                
+                            } else
+                            {
+
+                            }
+
+                            // debug
+                            string typeOutput = string.Join(", ", type);
+                            string abilitiesOutput = string.Join(", ", abilities);
+                            string hiddenAbilitiesOutput = string.Join(", ", hiddenAbilities);
+                            Debug.WriteLine($"{dexNumber}-{name}-{typeOutput}-{category}-普通特性: {abilitiesOutput}-隐藏特性: {hiddenAbilitiesOutput}");
 
                             Debug.WriteLine($"当前阶段：[获取基础信息]，已处理条目：{_count} / {pokeLinksList.Count}");
                             TB_Info.AppendText($"当前阶段：[获取基础信息]，已处理条目：{_count} / {pokeLinksList.Count}\r\n");
