@@ -1,6 +1,8 @@
+using System.Data.Entity.Core.Common.CommandTrees.ExpressionBuilder;
 using System.Data.SQLite;
 using System.Diagnostics;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Xml.Linq;
 using Application = System.Windows.Forms.Application;
 using HtmlDocument = HtmlAgilityPack.HtmlDocument;
@@ -973,7 +975,7 @@ namespace PokeDBBuilder
                                 TB_Info.AppendText($"全国图鉴号: {firstCell}, 名称: {secondCell}, 链接: {link}\r\n");
 
                                 // debug
-                                if (_count >= 20)
+                                if (_count >= 1)
                                 {
                                     return;
                                 }
@@ -992,6 +994,12 @@ namespace PokeDBBuilder
                 TB_Info.AppendText($"当前阶段：[获取全部链接]，发生错误: {ex.Message}\r\n");
                 MessageBox.Show($"当前阶段：[获取全部链接]，发生错误: {ex.Message}");
             }
+        }
+
+        private static string RemoveParentheses(string input)
+        {
+            string pattern = @"[（）()]";
+            return Regex.Replace(input, pattern, string.Empty);
         }
 
         private async Task GetPokeBasicStats()
@@ -1080,20 +1088,38 @@ namespace PokeDBBuilder
                                 abilities.Add(_ability);
                             }
 
-                            // 身高
+                            // 其他数据
+                            string growSpeed, height, weight;
+
                             if (hiddenAbilitiesExist)
                             {
-                                
+                                // 经验增长速度
+                                var row5 = trRows[4];
+                                var _growSpeed = row5.Descendants("small").ToList().First().InnerText;
+                                growSpeed = RemoveParentheses(_growSpeed);
+
+                                // 身高、体重
+                                var row8 = trRows[7];
+                                height = row8.Elements("td").ToList()[0].Descendants("td").ToList()[1].InnerText.Trim();
+                                weight = row8.Elements("td").ToList()[1].Descendants("td").ToList()[1].InnerText.Trim();
                             } else
                             {
+                                // 经验增长速度
+                                var _growSpeed = row4.Elements("td").ToList().Last().Descendants("small").ToList().First().InnerText;
+                                growSpeed = RemoveParentheses(_growSpeed);
 
+                                // 身高、体重
+                                var row7 = trRows[6];
+                                height = row7.Elements("td").ToList()[0].Descendants("td").ToList()[1].InnerText.Trim();
+                                weight = row7.Elements("td").ToList()[1].Descendants("td").ToList()[1].InnerText.Trim();
                             }
 
                             // debug
                             string typeOutput = string.Join(", ", type);
                             string abilitiesOutput = string.Join(", ", abilities);
                             string hiddenAbilitiesOutput = string.Join(", ", hiddenAbilities);
-                            Debug.WriteLine($"{dexNumber}-{name}-{typeOutput}-{category}-普通特性: {abilitiesOutput}-隐藏特性: {hiddenAbilitiesOutput}");
+                            Debug.WriteLine($"{dexNumber}-{name}-{typeOutput}-{category}-普通特性:{abilitiesOutput}-隐藏特性:{hiddenAbilitiesOutput}-经验增长速度:{growSpeed}" +
+                                $"-身高:{height}-体重{weight}");
 
                             Debug.WriteLine($"当前阶段：[获取基础信息]，已处理条目：{_count} / {pokeLinksList.Count}");
                             TB_Info.AppendText($"当前阶段：[获取基础信息]，已处理条目：{_count} / {pokeLinksList.Count}\r\n");
