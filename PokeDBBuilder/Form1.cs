@@ -975,7 +975,7 @@ namespace PokeDBBuilder
                                 TB_Info.AppendText($"全国图鉴号: {firstCell}, 名称: {secondCell}, 链接: {link}\r\n");
 
                                 // debug
-                                if (_count >= 1)
+                                if (_count >= 20)
                                 {
                                     return;
                                 }
@@ -1000,6 +1000,26 @@ namespace PokeDBBuilder
         {
             string pattern = @"[（）()]";
             return Regex.Replace(input, pattern, string.Empty);
+        }
+
+        private static string RemoveParenthesesAndInside(string input)
+        {
+            string pattern = @"[（(].*[）)]";
+            return Regex.Replace(input, pattern, string.Empty);
+        }
+
+        private static string ExtractNumber(string input)
+        {
+            string pattern = @"\d+(\.\d+)?";
+            Match match = Regex.Match(input, pattern);
+            return match.Value;
+        }
+
+        private static void TestPattern()
+        {
+            var input = "雄性 87.25%";
+            var output = ExtractNumber(input);
+            Debug.WriteLine($"原始：{input}\n处理：{output}");
         }
 
         private async Task GetPokeBasicStats()
@@ -1043,8 +1063,8 @@ namespace PokeDBBuilder
                             var name = row1.Descendants("b").First().InnerText;
 
                             // 全国图鉴号
-                            var _dexNumber = row1.Descendants("th").First().InnerText.Replace('#', '0');
-                            int.TryParse(_dexNumber, out int dexNumber);
+                            var _pokedexNumber = row1.Descendants("th").First().InnerText.Replace('#', '0');
+                            int.TryParse(_pokedexNumber, out int pokedexNumber);
 
                             // 属性
                             List<string> type = [];
@@ -1089,38 +1109,82 @@ namespace PokeDBBuilder
                             }
 
                             // 其他数据
-                            string growSpeed, height, weight;
+                            string levelingRate, height, weight, shape, pokedexColor;
+                            int catchRate;
+                            List<float> genderRatio = [];
 
                             if (hiddenAbilitiesExist)
                             {
                                 // 经验增长速度
                                 var row5 = trRows[4];
-                                var _growSpeed = row5.Descendants("small").ToList().First().InnerText;
-                                growSpeed = RemoveParentheses(_growSpeed);
+                                var _levelingRate = row5.Descendants("small").ToList().First().InnerText;
+                                levelingRate = RemoveParentheses(_levelingRate);
 
                                 // 身高、体重
                                 var row8 = trRows[7];
                                 height = row8.Elements("td").ToList()[0].Descendants("td").ToList()[1].InnerText.Trim();
                                 weight = row8.Elements("td").ToList()[1].Descendants("td").ToList()[1].InnerText.Trim();
-                            } else
+
+                                // 体型
+                                var row9 = trRows[8];
+                                shape = row9.Descendants("img").First().GetAttributeValue("alt", "");
+
+                                // 图鉴颜色、捕获率
+                                var row10 = trRows[9];
+                                pokedexColor = row10.Elements("td").ToList()[0].Descendants("span").First().InnerText;
+                                var _catchRate = row10.Elements("td").ToList()[1].Descendants("td").Last().InnerText;
+                                _catchRate = RemoveParenthesesAndInside(_catchRate);
+                                int.TryParse(_catchRate, out catchRate);
+
+                                // 性别比例
+                                var row11 = trRows[10];
+                                var _genderRatio = row11.Descendants("span").First().InnerText;
+                                float.TryParse(ExtractNumber(_genderRatio), out var maleRatio);
+                                var femaleRatio = 100 - maleRatio;
+                                genderRatio.Add(maleRatio);
+                                genderRatio.Add(femaleRatio);
+                            }
+                            else
                             {
                                 // 经验增长速度
-                                var _growSpeed = row4.Elements("td").ToList().Last().Descendants("small").ToList().First().InnerText;
-                                growSpeed = RemoveParentheses(_growSpeed);
+                                var _levelingRate = row4.Elements("td").ToList().Last().Descendants("small").ToList().First().InnerText;
+                                levelingRate = RemoveParentheses(_levelingRate);
 
                                 // 身高、体重
                                 var row7 = trRows[6];
                                 height = row7.Elements("td").ToList()[0].Descendants("td").ToList()[1].InnerText.Trim();
                                 weight = row7.Elements("td").ToList()[1].Descendants("td").ToList()[1].InnerText.Trim();
+
+                                // 体型
+                                var row8 = trRows[7];
+                                shape = row8.Descendants("img").First().GetAttributeValue("alt", "");
+
+                                // 图鉴颜色、捕获率
+                                var row9 = trRows[8];
+                                pokedexColor = row9.Elements("td").ToList()[0].Descendants("span").First().InnerText;
+                                var _catchRate = row9.Elements("td").ToList()[1].Descendants("td").Last().InnerText;
+                                _catchRate = RemoveParenthesesAndInside(_catchRate);
+                                int.TryParse(_catchRate, out catchRate);
+
+                                // 性别比例
+                                var row10 = trRows[9];
+                                var _genderRatio = row10.Descendants("span").First().InnerText;
+                                float.TryParse(ExtractNumber(_genderRatio), out var maleRatio);
+                                var femaleRatio = 100 - maleRatio;
+                                genderRatio.Add(maleRatio);
+                                genderRatio.Add(femaleRatio);
                             }
 
                             // debug
                             string typeOutput = string.Join(", ", type);
                             string abilitiesOutput = string.Join(", ", abilities);
                             string hiddenAbilitiesOutput = string.Join(", ", hiddenAbilities);
-                            Debug.WriteLine($"{dexNumber}-{name}-{typeOutput}-{category}-普通特性:{abilitiesOutput}-隐藏特性:{hiddenAbilitiesOutput}-经验增长速度:{growSpeed}" +
-                                $"-身高:{height}-体重{weight}");
+                            string genderRatioOutput = string.Join(", ", genderRatio);
 
+                            var outputInfo = $"{pokedexNumber}-{name}-{typeOutput}-{category}-普通特性:{abilitiesOutput}-隐藏特性:{hiddenAbilitiesOutput}-经验增长速度:{levelingRate}" +
+                                $"-身高:{height}-体重{weight}-体型:{shape}-图鉴颜色:{pokedexColor}-捕获率:{catchRate}-性别比例:{genderRatioOutput}";
+                            Debug.WriteLine(outputInfo);
+                            TB_Info.AppendText(outputInfo + "\r\n");
                             Debug.WriteLine($"当前阶段：[获取基础信息]，已处理条目：{_count} / {pokeLinksList.Count}");
                             TB_Info.AppendText($"当前阶段：[获取基础信息]，已处理条目：{_count} / {pokeLinksList.Count}\r\n");
                         }
@@ -1144,6 +1208,8 @@ namespace PokeDBBuilder
             TB_Info.Clear();
             await GetPokeLinks();
             await GetPokeBasicStats();
+
+            //TestPattern();
         }
     }
 }
