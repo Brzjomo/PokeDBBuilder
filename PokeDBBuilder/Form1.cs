@@ -975,7 +975,7 @@ namespace PokeDBBuilder
                                 TB_Info.AppendText($"全国图鉴号: {firstCell}, 名称: {secondCell}, 链接: {link}\r\n");
 
                                 // debug
-                                if (_count >= 20)
+                                if (_count >= 1)
                                 {
                                     return;
                                 }
@@ -1015,10 +1015,24 @@ namespace PokeDBBuilder
             return match.Value;
         }
 
+        private static string ExtractHatchTime(string input)
+        {
+            string pattern = @"\d+";
+            Match match = Regex.Match(input, pattern);
+            return match.Value;
+        }
+
+        private static string ExtractTailNumber(string input)
+        {
+            string pattern = @"\d*\z";
+            Match match = Regex.Match(input, pattern);
+            return match.Value;
+        }
+
         private static void TestPattern()
         {
-            var input = "雄性 87.25%";
-            var output = ExtractNumber(input);
+            var input = "特攻1";
+            var output = ExtractTailNumber(input);
             Debug.WriteLine($"原始：{input}\n处理：{output}");
         }
 
@@ -1110,8 +1124,10 @@ namespace PokeDBBuilder
 
                             // 其他数据
                             string levelingRate, height, weight, shape, pokedexColor;
-                            int catchRate;
+                            int catchRate, hatchTime;
                             List<float> genderRatio = [];
+                            List<string> eggGroups = [];
+                            List<int> EVYield = [];
 
                             if (hiddenAbilitiesExist)
                             {
@@ -1143,6 +1159,28 @@ namespace PokeDBBuilder
                                 var femaleRatio = 100 - maleRatio;
                                 genderRatio.Add(maleRatio);
                                 genderRatio.Add(femaleRatio);
+
+                                // 蛋群、孵化周期
+                                var row12 = trRows[11];
+                                var row12tr2 = row12.Descendants("tr").Last().Descendants("td").ToList();
+                                var _eggGroupsNode = row12tr2[0].Descendants("a").ToList();
+                                foreach (var node in _eggGroupsNode)
+                                {
+                                    eggGroups.Add(node.InnerText);
+                                }
+                                var _hatchTime = row12tr2[1].InnerText;
+                                int.TryParse(ExtractHatchTime(_hatchTime), out hatchTime);
+
+                                // 取得基础点数
+                                var row13 = trRows[12];
+                                var row13tr2 = row13.Descendants("tr").ToList()[1];
+                                var _EVYield = row13tr2.Elements("td").ToList();
+                                foreach(var node in _EVYield)
+                                {
+                                    var _ev = node.InnerText.Trim();
+                                    int.TryParse(_ev, out var ev);
+                                    EVYield.Add(ev);
+                                }
                             }
                             else
                             {
@@ -1173,6 +1211,17 @@ namespace PokeDBBuilder
                                 var femaleRatio = 100 - maleRatio;
                                 genderRatio.Add(maleRatio);
                                 genderRatio.Add(femaleRatio);
+
+                                // 蛋群、孵化周期
+                                var row11 = trRows[10];
+                                var row11tr2 = row11.Descendants("tr").Last().Descendants("td").ToList();
+                                var _eggGroupsNode = row11tr2[0].Descendants("a").ToList();
+                                foreach (var node in _eggGroupsNode)
+                                {
+                                    eggGroups.Add(node.InnerText);
+                                }
+                                var _hatchTime = row11tr2[1].InnerText;
+                                int.TryParse(ExtractHatchTime(_hatchTime), out hatchTime);
                             }
 
                             // debug
@@ -1180,9 +1229,11 @@ namespace PokeDBBuilder
                             string abilitiesOutput = string.Join(", ", abilities);
                             string hiddenAbilitiesOutput = string.Join(", ", hiddenAbilities);
                             string genderRatioOutput = string.Join(", ", genderRatio);
+                            string eggGroupsOutput = string.Join(", ", eggGroups);
 
                             var outputInfo = $"{pokedexNumber}-{name}-{typeOutput}-{category}-普通特性:{abilitiesOutput}-隐藏特性:{hiddenAbilitiesOutput}-经验增长速度:{levelingRate}" +
-                                $"-身高:{height}-体重{weight}-体型:{shape}-图鉴颜色:{pokedexColor}-捕获率:{catchRate}-性别比例:{genderRatioOutput}";
+                                $"-身高:{height}-体重{weight}-体型:{shape}-图鉴颜色:{pokedexColor}-捕获率:{catchRate}-性别比例:{genderRatioOutput}-蛋群:{eggGroupsOutput}" +
+                                $"-孵化周期:{hatchTime}";
                             Debug.WriteLine(outputInfo);
                             TB_Info.AppendText(outputInfo + "\r\n");
                             Debug.WriteLine($"当前阶段：[获取基础信息]，已处理条目：{_count} / {pokeLinksList.Count}");
