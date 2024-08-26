@@ -1,10 +1,8 @@
 using HtmlAgilityPack;
-using System.Data.Entity.Core.Common.CommandTrees.ExpressionBuilder;
 using System.Data.SQLite;
 using System.Diagnostics;
 using System.Text;
 using System.Text.RegularExpressions;
-using System.Xml.Linq;
 using Application = System.Windows.Forms.Application;
 using HtmlDocument = HtmlAgilityPack.HtmlDocument;
 
@@ -1030,10 +1028,16 @@ namespace PokeDBBuilder
             return match.Value;
         }
 
+        private static bool CheckIfNumber(string input)
+        {
+            string pattern = @"^\d+$";
+            return Regex.IsMatch(input, pattern);
+        }
+
         private static void TestPattern()
         {
-            var input = "特攻1";
-            var output = ExtractTailNumber(input);
+            var input = "21";
+            var output = CheckIfNumber(input);
             Debug.WriteLine($"原始：{input}\n处理：{output}");
         }
 
@@ -1122,7 +1126,7 @@ namespace PokeDBBuilder
 
                         if (basicStatsTable != null)
                         {
-                            // 获取基数信息
+                            // 获取基础信息
                             var trRows = basicStatsTable.Element("tbody").Elements("tr").ToList();
 
                             // 名称
@@ -1290,6 +1294,7 @@ namespace PokeDBBuilder
 
                             List<int> baseStats = [];
                             string pokedexDescription;
+                            List<string> learnsetLevelingUp = [];
 
                             // 种族值
                             var rowHP = htmlDoc.DocumentNode.SelectNodes("//tr[contains(@class, 'bgl-HP')]").First();
@@ -1346,6 +1351,42 @@ namespace PokeDBBuilder
                             }
 
                             // 可学会的招式
+                            var learnsetLevelingUpTable = htmlDoc.DocumentNode.SelectNodes("//table[contains(@class, 'a-c at-c sortable')]").First();
+                            var trLevelingUp = learnsetLevelingUpTable.Element("tbody").Elements("tr").ToList();
+
+                            trLevelingUp.RemoveAt(0);
+                            trLevelingUp.RemoveAt(0);
+                            trLevelingUp.RemoveAt(trLevelingUp.Count - 1);
+
+                            foreach (var node in trLevelingUp)
+                            {
+                                var td = node.Elements("td").ToList();
+                                var _level = td.First().InnerText.Trim();
+                                
+                                if (!CheckIfNumber(_level))
+                                {
+                                    _level = "0";
+                                }
+                                int.TryParse(_level, out int level);
+                                var move = td[2].Descendants("a").First().InnerText.Trim();
+                                var output = level + "-" + move;
+                                // 去重
+                                bool exist = false;
+                                foreach (var item in learnsetLevelingUp)
+                                {
+                                    if (item == output)
+                                    {
+                                        exist = true;
+                                        break;
+                                    }
+                                }
+                                if (!exist)
+                                {
+                                    learnsetLevelingUp.Add(output);
+                                }
+                            }
+
+                            // 能使用的招式学习器
 
                             // debug
                             string typeOutput = string.Join(", ", type);
@@ -1355,10 +1396,11 @@ namespace PokeDBBuilder
                             string eggGroupsOutput = string.Join(", ", eggGroups);
                             string EVYieldOutput = string.Join(", ", EVYield);
                             string baseStatsOutput = string.Join(", ", baseStats);
+                            string learnsetLevelingUpOutput = string.Join(", ", learnsetLevelingUp);
 
                             var outputInfo = $"{pokedexNumber}-{name}-{typeOutput}-{category}-普通特性:{abilitiesOutput}-隐藏特性:{hiddenAbilitiesOutput}-经验增长速度:{levelingRate}" +
                                 $"-身高:{height}-体重{weight}-体型:{shape}-图鉴颜色:{pokedexColor}-捕获率:{catchRate}-性别比例:{genderRatioOutput}-蛋群:{eggGroupsOutput}" +
-                                $"-孵化周期:{hatchTime}-取得基础点数:{EVYieldOutput}-种族值:{baseStatsOutput}-图鉴描述:{pokedexDescription}";
+                                $"-孵化周期:{hatchTime}-取得基础点数:{EVYieldOutput}-种族值:{baseStatsOutput}-图鉴描述:{pokedexDescription}-可学会的招式:{learnsetLevelingUpOutput}";
                             Debug.WriteLine(outputInfo);
                             TB_Info.AppendText(outputInfo + "\r\n");
                             Debug.WriteLine($"当前阶段：[获取基础信息]，已处理条目：{_count} / {pokeLinksList.Count}");
