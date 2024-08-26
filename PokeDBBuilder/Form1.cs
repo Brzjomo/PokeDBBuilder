@@ -1178,7 +1178,7 @@ namespace PokeDBBuilder
                                 foreach(var node in _EVYield)
                                 {
                                     var _ev = node.InnerText.Trim();
-                                    int.TryParse(_ev, out var ev);
+                                    int.TryParse(ExtractTailNumber(_ev), out var ev);
                                     EVYield.Add(ev);
                                 }
                             }
@@ -1222,6 +1222,17 @@ namespace PokeDBBuilder
                                 }
                                 var _hatchTime = row11tr2[1].InnerText;
                                 int.TryParse(ExtractHatchTime(_hatchTime), out hatchTime);
+
+                                // 取得基础点数
+                                var row12 = trRows[11];
+                                var row12tr2 = row12.Descendants("tr").ToList()[1];
+                                var _EVYield = row12tr2.Elements("td").ToList();
+                                foreach (var node in _EVYield)
+                                {
+                                    var _ev = node.InnerText.Trim();
+                                    int.TryParse(ExtractTailNumber(_ev), out var ev);
+                                    EVYield.Add(ev);
+                                }
                             }
 
                             // debug
@@ -1230,10 +1241,11 @@ namespace PokeDBBuilder
                             string hiddenAbilitiesOutput = string.Join(", ", hiddenAbilities);
                             string genderRatioOutput = string.Join(", ", genderRatio);
                             string eggGroupsOutput = string.Join(", ", eggGroups);
+                            string EVYieldOutput = string.Join(", ", EVYield);
 
                             var outputInfo = $"{pokedexNumber}-{name}-{typeOutput}-{category}-普通特性:{abilitiesOutput}-隐藏特性:{hiddenAbilitiesOutput}-经验增长速度:{levelingRate}" +
                                 $"-身高:{height}-体重{weight}-体型:{shape}-图鉴颜色:{pokedexColor}-捕获率:{catchRate}-性别比例:{genderRatioOutput}-蛋群:{eggGroupsOutput}" +
-                                $"-孵化周期:{hatchTime}";
+                                $"-孵化周期:{hatchTime}-取得基础点数:{EVYieldOutput}";
                             Debug.WriteLine(outputInfo);
                             TB_Info.AppendText(outputInfo + "\r\n");
                             Debug.WriteLine($"当前阶段：[获取基础信息]，已处理条目：{_count} / {pokeLinksList.Count}");
