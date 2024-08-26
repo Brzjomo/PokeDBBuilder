@@ -1,3 +1,4 @@
+using HtmlAgilityPack;
 using System.Data.Entity.Core.Common.CommandTrees.ExpressionBuilder;
 using System.Data.SQLite;
 using System.Diagnostics;
@@ -975,7 +976,7 @@ namespace PokeDBBuilder
                                 TB_Info.AppendText($"全国图鉴号: {firstCell}, 名称: {secondCell}, 链接: {link}\r\n");
 
                                 // debug
-                                if (_count >= 1)
+                                if (_count >= 20)
                                 {
                                     return;
                                 }
@@ -1036,6 +1037,56 @@ namespace PokeDBBuilder
             Debug.WriteLine($"原始：{input}\n处理：{output}");
         }
 
+        private static string GetPokedexDescription(HtmlNode node)
+        {
+            var tables = node.Element("tbody").Elements("tr").ToList()[1].Element("td").Elements("table").ToList();
+            var count = tables.Count;
+            var index = (int)Math.Floor((decimal)count / 2);
+            var targetTable = tables[index];
+            var description = targetTable.Element("tbody").Elements("tr").ToList()[1].Elements("td").Last().InnerText.Trim();
+
+            if (description == "{{{scdex}}}" || description == string.Empty)
+            {
+                var td = targetTable.Element("tbody").Elements("tr").First().Elements("td").ToList();
+                if (td.Count > 1)
+                {
+                    description = td[1].InnerText.Trim();
+
+                    if (description == "{{{scdex}}}")
+                    {
+                        return string.Empty;
+                    }
+                    else
+                    {
+                        return description;
+                    }
+                }
+                else
+                {
+                    td = targetTable.Element("tbody").Elements("tr").ToList()[1].Elements("td").ToList();
+                    if (td.Count > 1)
+                    {
+                        description = td[1].InnerText.Trim();
+
+                        if (description == "{{{scdex}}}")
+                        {
+                            return string.Empty;
+                        }
+                        else
+                        {
+                            return description;
+                        }
+                    } else
+                    {
+                        return string.Empty;
+                    }
+                }
+            } else
+            {
+                return description;
+            }
+        }
+
         private async Task GetPokeBasicStats()
         {
             try
@@ -1066,12 +1117,14 @@ namespace PokeDBBuilder
 
                         // 获取所有必要信息，然后存储到pokedata对象
 
-                        // 获取基数信息
+                        // 获取基本节点
                         var basicStatsTable = htmlDoc.DocumentNode.SelectNodes("//table[contains(@class, 'roundy')]")[2];
 
                         if (basicStatsTable != null)
                         {
+                            // 获取基数信息
                             var trRows = basicStatsTable.Element("tbody").Elements("tr").ToList();
+
                             // 名称
                             var row1 = trRows[0];
                             var name = row1.Descendants("b").First().InnerText;
@@ -1235,6 +1288,65 @@ namespace PokeDBBuilder
                                 }
                             }
 
+                            List<int> baseStats = [];
+                            string pokedexDescription;
+
+                            // 种族值
+                            var rowHP = htmlDoc.DocumentNode.SelectNodes("//tr[contains(@class, 'bgl-HP')]").First();
+                            var _HP = rowHP.Element("th").Descendants("span").Last().InnerText;
+                            int.TryParse(_HP, out var HP);
+                            baseStats.Add(HP);
+
+                            var rowATK = htmlDoc.DocumentNode.SelectNodes("//tr[contains(@class, 'bgl-攻击')]").First();
+                            var _ATK = rowATK.Element("th").Descendants("span").Last().InnerText;
+                            int.TryParse(_ATK, out var ATK);
+                            baseStats.Add(ATK);
+
+                            var rowDEF = htmlDoc.DocumentNode.SelectNodes("//tr[contains(@class, 'bgl-防御')]").First();
+                            var _DEF = rowDEF.Element("th").Descendants("span").Last().InnerText;
+                            int.TryParse(_DEF, out var DEF);
+                            baseStats.Add(DEF);
+
+                            var rowSPA = htmlDoc.DocumentNode.SelectNodes("//tr[contains(@class, 'bgl-特攻')]").First();
+                            var _SPA = rowSPA.Element("th").Descendants("span").Last().InnerText;
+                            int.TryParse(_SPA, out var SPA);
+                            baseStats.Add(SPA);
+
+                            var rowSPD = htmlDoc.DocumentNode.SelectNodes("//tr[contains(@class, 'bgl-特防')]").First();
+                            var _SPD = rowSPD.Element("th").Descendants("span").Last().InnerText;
+                            int.TryParse(_SPD, out var SPD);
+                            baseStats.Add(SPD);
+
+                            var rowSPE = htmlDoc.DocumentNode.SelectNodes("//tr[contains(@class, 'bgl-速度')]").First();
+                            var _SPE = rowSPE.Element("th").Descendants("span").Last().InnerText;
+                            int.TryParse(_SPE, out var SPE);
+                            baseStats.Add(SPE);
+
+                            // 图鉴描述
+                            var descriptionTable = htmlDoc.DocumentNode.SelectNodes("//table[contains(@class, 'a-c at-c roundy')]").Last();
+                            if (descriptionTable != null)
+                            {
+                                var availableDescTable = descriptionTable.Element("tbody").Elements("tr").Last().Element("td").Elements("table").ToList();
+                                availableDescTable.RemoveAt(availableDescTable.Count - 1);
+                                var targetTable = availableDescTable.Last();
+                                var description = GetPokedexDescription(targetTable);
+
+                                while (description == string.Empty && availableDescTable.Count > 1)
+                                {
+                                    availableDescTable.RemoveAt(availableDescTable.Count - 1);
+                                    targetTable = availableDescTable.Last();
+                                    description = GetPokedexDescription(targetTable);
+                                }
+
+                                pokedexDescription = description;
+                            } else
+                            {
+                                Debug.WriteLine("descriptionTable为空");
+                                pokedexDescription = string.Empty;
+                            }
+
+                            // 可学会的招式
+
                             // debug
                             string typeOutput = string.Join(", ", type);
                             string abilitiesOutput = string.Join(", ", abilities);
@@ -1242,10 +1354,11 @@ namespace PokeDBBuilder
                             string genderRatioOutput = string.Join(", ", genderRatio);
                             string eggGroupsOutput = string.Join(", ", eggGroups);
                             string EVYieldOutput = string.Join(", ", EVYield);
+                            string baseStatsOutput = string.Join(", ", baseStats);
 
                             var outputInfo = $"{pokedexNumber}-{name}-{typeOutput}-{category}-普通特性:{abilitiesOutput}-隐藏特性:{hiddenAbilitiesOutput}-经验增长速度:{levelingRate}" +
                                 $"-身高:{height}-体重{weight}-体型:{shape}-图鉴颜色:{pokedexColor}-捕获率:{catchRate}-性别比例:{genderRatioOutput}-蛋群:{eggGroupsOutput}" +
-                                $"-孵化周期:{hatchTime}-取得基础点数:{EVYieldOutput}";
+                                $"-孵化周期:{hatchTime}-取得基础点数:{EVYieldOutput}-种族值:{baseStatsOutput}-图鉴描述:{pokedexDescription}";
                             Debug.WriteLine(outputInfo);
                             TB_Info.AppendText(outputInfo + "\r\n");
                             Debug.WriteLine($"当前阶段：[获取基础信息]，已处理条目：{_count} / {pokeLinksList.Count}");
