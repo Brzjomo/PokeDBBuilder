@@ -1091,6 +1091,53 @@ namespace PokeDBBuilder
             }
         }
 
+        private static string ReplaceFullWidthNumberWithHalfWidth(string input)
+        {
+            char[] chars = input.ToCharArray();
+            string output = string.Empty;
+            foreach (var item in chars)
+            {
+                switch (item)
+                {
+                    case '０':
+                        output += '0';
+                        break;
+                    case '１':
+                        output += '1';
+                        break;
+                    case '２':
+                        output += '2';
+                        break;
+                    case '３':
+                        output += '3';
+                        break;
+                    case '４':
+                        output += '4';
+                        break;
+                    case '５':
+                        output += '5';
+                        break;
+                    case '６':
+                        output += '6';
+                        break;
+                    case '７':
+                        output += '7';
+                        break;
+                    case '８':
+                        output += '8';
+                        break;
+                    case '９':
+                        output += '9';
+                        break;
+                    default:
+                        output += item;
+                        break;
+                }
+            }
+
+            return output;
+        }
+
         private async Task GetPokeBasicStats()
         {
             try
@@ -1295,6 +1342,7 @@ namespace PokeDBBuilder
                             List<int> baseStats = [];
                             string pokedexDescription;
                             List<string> learnsetLevelingUp = [];
+                            List<int> learnsetTM = [];
 
                             // 种族值
                             var rowHP = htmlDoc.DocumentNode.SelectNodes("//tr[contains(@class, 'bgl-HP')]").First();
@@ -1387,6 +1435,41 @@ namespace PokeDBBuilder
                             }
 
                             // 能使用的招式学习器
+                            var learnsetTMTable = htmlDoc.DocumentNode.SelectNodes("//table[contains(@class, 'a-c at-c sortable')]").ToList()[1];
+                            var trTM = learnsetTMTable.Element("tbody").Elements("tr").ToList();
+
+                            if (trTM.Count > 3)
+                            {
+                                trTM.RemoveAt(0);
+                                trTM.RemoveAt(0);
+                                trTM.RemoveAt(trTM.Count - 1);
+
+                                foreach (var node in trTM)
+                                {
+                                    var td = node.Elements("td").ToList();
+
+                                    if (td.Count > 1)
+                                    {
+                                        var _TM = td[1].InnerText.Trim();
+                                        _TM = ReplaceFullWidthNumberWithHalfWidth(_TM);
+                                        int.TryParse(ExtractTailNumber(_TM), out int TM);
+                                        // 去重
+                                        bool exist = false;
+                                        foreach (var item in learnsetTM)
+                                        {
+                                            if (item == TM)
+                                            {
+                                                exist = true;
+                                                break;
+                                            }
+                                        }
+                                        if (!exist)
+                                        {
+                                            learnsetTM.Add(TM);
+                                        }
+                                    }
+                                }
+                            }
 
                             // debug
                             string typeOutput = string.Join(", ", type);
@@ -1397,10 +1480,12 @@ namespace PokeDBBuilder
                             string EVYieldOutput = string.Join(", ", EVYield);
                             string baseStatsOutput = string.Join(", ", baseStats);
                             string learnsetLevelingUpOutput = string.Join(", ", learnsetLevelingUp);
+                            string learnsetTMOutput = string.Join(", ", learnsetTM);
 
                             var outputInfo = $"{pokedexNumber}-{name}-{typeOutput}-{category}-普通特性:{abilitiesOutput}-隐藏特性:{hiddenAbilitiesOutput}-经验增长速度:{levelingRate}" +
                                 $"-身高:{height}-体重{weight}-体型:{shape}-图鉴颜色:{pokedexColor}-捕获率:{catchRate}-性别比例:{genderRatioOutput}-蛋群:{eggGroupsOutput}" +
-                                $"-孵化周期:{hatchTime}-取得基础点数:{EVYieldOutput}-种族值:{baseStatsOutput}-图鉴描述:{pokedexDescription}-可学会的招式:{learnsetLevelingUpOutput}";
+                                $"-孵化周期:{hatchTime}-取得基础点数:{EVYieldOutput}-种族值:{baseStatsOutput}-图鉴描述:{pokedexDescription}-可学会的招式:{learnsetLevelingUpOutput}" +
+                                $"-能使用的招式学习器:{learnsetTMOutput}";
                             Debug.WriteLine(outputInfo);
                             TB_Info.AppendText(outputInfo + "\r\n");
                             Debug.WriteLine($"当前阶段：[获取基础信息]，已处理条目：{_count} / {pokeLinksList.Count}");
