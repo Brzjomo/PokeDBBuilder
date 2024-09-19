@@ -2,11 +2,28 @@
 {
     internal class PokeData
     {
-        public int nationalNumber;
-        public string name;
-        public List<string> type = [];
-        public List<string> abilities = [];
-        public int[] BST = new int[6];
+        public int nationalNumber;  //20
+        public string name;  //拉达
+        public string? category;  //鼠宝可梦
+        public string? levelingRate;  //较快
+        public float? height;  //0.7m
+        public float? weight;  //18.5kg
+        public string? shape;  //四足兽形
+        public string? pokedexColor;  //褐色
+        public int? catchRate;  //127
+        public int? hatchTime;  //15
+        public string? pokedexDescription;  //为了磨平不断生长的门牙，它有着啃咬硬物的习性。连水泥围墙也能咬坏。
+        public List<string> type = [];  //一般
+        public List<string> abilities = [];  //逃跑, 毅力
+        public List<string>? hiddenAbilities = [];  //活力
+        public List<float>? genderRatio = [];  //50, 50
+        public List<string>? eggGroups = [];  //陆上群
+        public List<int>? EVYield = [];  //0, 0, 0, 0, 0, 2
+        public List<int> baseStats = [];  //55, 81, 60, 50, 70, 97
+        //
+        public List<string>? learnsetLevelingUp = [];  //0-聚气, 4-电光一闪, 7-聚气
+        public Dictionary<int, int> learnsetLevelingUp_test = []; //0-116, 4-98, 7-116
+        public List<int>? learnsetTM = [];  //5, 10, 11
         public int evolutionaryStage;
         public bool ifFinalStage;
         public bool ifMegaForm;
@@ -40,14 +57,20 @@
             name = _name;
         }
 
+        public PokeData(int _nationalNumber)
+        {
+            name = "";
+            nationalNumber = _nationalNumber;
+        }
+
         public PokeData(int _nationalNumber, string _name, List<string> _type, List<string> _abilities,
-            int[] _BST, int _evolutionaryStage, bool _ifFinalStage, bool _ifMegaForm, bool _ifLegendary)
+            List<int> _baseStats, int _evolutionaryStage, bool _ifFinalStage, bool _ifMegaForm, bool _ifLegendary)
         {
             nationalNumber = _nationalNumber;
             name = _name;
             type = _type;
             abilities = _abilities;
-            BST = _BST;
+            baseStats = _baseStats;
             evolutionaryStage = _evolutionaryStage;
             ifFinalStage = _ifFinalStage;
             ifMegaForm = _ifMegaForm;
@@ -89,9 +112,7 @@
                 if (list[j] < pivot)
                 {
                     i++;
-                    int _temp = list[i];
-                    list[i] = list[j];
-                    list[j] = _temp;
+                    (list[j], list[i]) = (list[i], list[j]);
                 }
             }
             int temp = list[i + 1];
