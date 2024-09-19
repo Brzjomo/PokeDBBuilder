@@ -1,8 +1,10 @@
 using HtmlAgilityPack;
+using OpenCCNET;
 using System.Data.SQLite;
 using System.Diagnostics;
 using System.Text;
 using System.Text.RegularExpressions;
+using System.Xml.Linq;
 using Application = System.Windows.Forms.Application;
 using HtmlDocument = HtmlAgilityPack.HtmlDocument;
 
@@ -941,6 +943,9 @@ namespace PokeDBBuilder
         private const string PokeMoveListLink = "https://wiki.52poke.com/wiki/%E6%8B%9B%E5%BC%8F%E5%88%97%E8%A1%A8";
         private Dictionary<int, string> pokeMoveNameAndIndex = [];
 
+        private string[] oldMoveName = ["诅咒"];
+        private string[] newMoveName = ["咒术"];
+
         private async Task GetPokeMoveNameAndIndex()
         {
             try
@@ -982,6 +987,13 @@ namespace PokeDBBuilder
                                         _count++;
 
                                         var moveName = row.Elements("td").ToList()[1].InnerText.Trim();
+
+                                        // 繁体转简体
+                                        ZhConverter.Initialize();
+                                        moveName = moveName.ToHansFromHant();
+
+                                        moveName = ReplaceOldMoveNameWithNew(moveName);
+
                                         pokeMoveNameAndIndex.Add(index, moveName);
                                     }
                                     else
@@ -1009,6 +1021,20 @@ namespace PokeDBBuilder
                 TB_Info.AppendText($"当前阶段：[获取招式名称和序号]，发生错误: {ex.Message}\r\n");
                 MessageBox.Show($"当前阶段：[获取招式名称和序号]，发生错误: {ex.Message}");
             }
+        }
+
+        private string ReplaceOldMoveNameWithNew(string name)
+        {
+            for (int i = 0; i < oldMoveName.Length; i++)
+            {
+                if (oldMoveName[i] == name)
+                {
+                    name = newMoveName[i];
+                    return name;
+                }
+            }
+
+            return name;
         }
 
         private int GetMoveIndexFromName(string name)
@@ -1561,7 +1587,10 @@ namespace PokeDBBuilder
 
                                             //debug
                                             var moveIndex = GetMoveIndexFromName(_TM);
-                                            Debug.WriteLine($"{_TM}: {moveIndex}");
+                                            if (moveIndex == 0)
+                                            {
+                                                Debug.WriteLine($"{_TM}: {moveIndex}");
+                                            }
                                         }
                                     }
                                 }
