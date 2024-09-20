@@ -4,7 +4,6 @@ using System.Data.SQLite;
 using System.Diagnostics;
 using System.Text;
 using System.Text.RegularExpressions;
-using System.Xml.Linq;
 using Application = System.Windows.Forms.Application;
 using HtmlDocument = HtmlAgilityPack.HtmlDocument;
 
@@ -1622,6 +1621,8 @@ namespace PokeDBBuilder
                             poke.learnsetTM = learnsetTM;
                             //Î´Íê³É
                             poke.evolutionaryStage = 0;
+
+                            pokeDatas.Add(poke);
 
                             // debug
                             string typeOutput = string.Join(", ", type);
