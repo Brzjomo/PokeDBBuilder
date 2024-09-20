@@ -943,8 +943,10 @@ namespace PokeDBBuilder
         private const string PokeMoveListLink = "https://wiki.52poke.com/wiki/%E6%8B%9B%E5%BC%8F%E5%88%97%E8%A1%A8";
         private Dictionary<int, string> pokeMoveNameAndIndex = [];
 
-        private string[] oldMoveName = ["诅咒"];
-        private string[] newMoveName = ["咒术"];
+        private string[] oldMoveName = ["诅咒", "鬼面", "鬼火", "空气斩", "吸血", "地狱突刺", "起死回生", "炼狱"];
+        private string[] newMoveName = ["咒术", "可怕面孔", "磷火", "空气之刃", "汲取", "深渊突刺", "绝处逢生", "烈火深渊"];
+
+        private List<string> unMatchingMoveName = [];
 
         private async Task GetPokeMoveNameAndIndex()
         {
@@ -987,12 +989,7 @@ namespace PokeDBBuilder
                                         _count++;
 
                                         var moveName = row.Elements("td").ToList()[1].InnerText.Trim();
-
-                                        // 繁体转简体
-                                        ZhConverter.Initialize();
-                                        moveName = moveName.ToHansFromHant();
-
-                                        moveName = ReplaceOldMoveNameWithNew(moveName);
+                                        moveName = ReplaceOldMoveNameWithNew(HantToHans(moveName));
 
                                         pokeMoveNameAndIndex.Add(index, moveName);
                                     }
@@ -1037,6 +1034,12 @@ namespace PokeDBBuilder
             return name;
         }
 
+        private string HantToHans(string input)
+        {
+            ZhConverter.Initialize();
+            return input.ToHansFromHant();
+        }
+
         private int GetMoveIndexFromName(string name)
         {
             foreach (var item in pokeMoveNameAndIndex)
@@ -1047,8 +1050,23 @@ namespace PokeDBBuilder
                 }
             }
 
-            Debug.WriteLine($"没有查询到{name}的序号，请检查招式名称。");
+            PrintColorfulDebugMessage($"没有查询到[{name}]的序号，请检查招式名称。", CustomColor.Magenta);
             return 0;
+        }
+
+        private enum CustomColor
+        {
+            Orange,
+            Lime,
+            Magenta,
+            Gold
+        }
+
+        private void PrintColorfulDebugMessage(string input, CustomColor color)
+        {
+            var prefix = "[" + color + "]";
+
+            Debug.WriteLine(prefix + input);
         }
 
         private async Task GetPokeLinks()
@@ -1088,7 +1106,7 @@ namespace PokeDBBuilder
                                 TB_Info.AppendText($"全国图鉴号: {firstCell}, 名称: {secondCell}, 链接: {link}\r\n");
 
                                 // debug
-                                if (_count >= 2)
+                                if (_count >= 4)
                                 {
                                     return;
                                 }
@@ -1254,6 +1272,8 @@ namespace PokeDBBuilder
 
         private async Task GetPokeBasicStats()
         {
+            pokeDatas.Clear();
+            unMatchingMoveName.Clear();
             try
             {
                 using (var httpClient = new HttpClient())
@@ -1281,7 +1301,6 @@ namespace PokeDBBuilder
                         htmlDoc.LoadHtml(html);
 
                         // 获取所有必要信息，然后存储到pokedata对象
-
                         // 获取基本节点
                         var basicStatsTable = htmlDoc.DocumentNode.SelectNodes("//table[contains(@class, 'roundy')]")[2];
 
@@ -1460,7 +1479,8 @@ namespace PokeDBBuilder
 
                             List<int> baseStats = [];
                             string pokedexDescription;
-                            List<string> learnsetLevelingUp = [];
+                            List<int> learnsetLevelingUp = [];
+                            List<int> learnsetLevelingUpLevel = [];
                             List<int> learnsetTM = [];
 
                             // 种族值
@@ -1535,26 +1555,18 @@ namespace PokeDBBuilder
                                     _level = "0";
                                 }
                                 int.TryParse(_level, out int level);
+
                                 var move = td[2].Descendants("a").First().InnerText.Trim();
-                                var output = level + "-" + move;
-                                // 去重
-                                bool exist = false;
-                                foreach (var item in learnsetLevelingUp)
-                                {
-                                    if (item == output)
-                                    {
-                                        exist = true;
-                                        break;
-                                    }
-                                }
-                                if (!exist)
-                                {
-                                    learnsetLevelingUp.Add(output);
-                                }
+                                move = HantToHans(move);
+                                ReplaceOldMoveNameWithNew(move);
+
+                                var index = GetMoveIndexFromName(move);
+
+                                learnsetLevelingUp.Add(index);
+                                learnsetLevelingUpLevel.Add(level);
                             }
 
                             // 能使用的招式学习器
-                            List<string> _learnsetTM = [];
                             var learnsetTMTable = htmlDoc.DocumentNode.SelectNodes("//table[contains(@class, 'a-c at-c sortable')]").ToList()[1];
                             var trTM = learnsetTMTable.Element("tbody").Elements("tr").ToList();
 
@@ -1571,30 +1583,45 @@ namespace PokeDBBuilder
                                     if (td.Count > 1)
                                     {
                                         var _TM = td[2].Descendants("a").First().InnerText.Trim();
-                                        // 去重
-                                        bool exist = false;
-                                        foreach (var item in _learnsetTM)
-                                        {
-                                            if (item == _TM)
-                                            {
-                                                exist = true;
-                                                break;
-                                            }
-                                        }
-                                        if (!exist)
-                                        {
-                                            _learnsetTM.Add(_TM);
+                                        _TM = ReplaceOldMoveNameWithNew(HantToHans(_TM));
 
-                                            //debug
-                                            var moveIndex = GetMoveIndexFromName(_TM);
-                                            if (moveIndex == 0)
-                                            {
-                                                Debug.WriteLine($"{_TM}: {moveIndex}");
-                                            }
+                                        var moveIndex = GetMoveIndexFromName(_TM);
+                                        AddToListIfNotExist<int>(moveIndex, learnsetTM);
+
+                                        if (moveIndex == 0)
+                                        {
+                                            AddToListIfNotExist<string>(_TM, unMatchingMoveName);
                                         }
                                     }
                                 }
+
+                                PokeData.QuickSort(learnsetTM, 0, learnsetTM.Count - 1);
                             }
+
+                            // PokeData建立
+                            var poke = new PokeData(pokedexNumber);
+                            poke.name = name;
+                            poke.category = category;
+                            poke.levelingRate = levelingRate;
+                            poke.height = height;
+                            poke.weight = weight;
+                            poke.shape = shape;
+                            poke.pokedexColor = pokedexColor;
+                            poke.catchRate = catchRate;
+                            poke.hatchTime = hatchTime;
+                            poke.pokedexDescription = pokedexDescription;
+                            poke.type = type;
+                            poke.abilities = abilities;
+                            poke.hiddenAbilities = hiddenAbilities;
+                            poke.genderRatio = genderRatio;
+                            poke.eggGroups = eggGroups;
+                            poke.EVYield = EVYield;
+                            poke.baseStats = baseStats;
+                            poke.learnsetLevelingUp = learnsetLevelingUp;
+                            poke.learnsetLevelingUPLevel = learnsetLevelingUpLevel;
+                            poke.learnsetTM = learnsetTM;
+                            //未完成
+                            poke.evolutionaryStage = 0;
 
                             // debug
                             string typeOutput = string.Join(", ", type);
@@ -1605,8 +1632,7 @@ namespace PokeDBBuilder
                             string EVYieldOutput = string.Join(", ", EVYield);
                             string baseStatsOutput = string.Join(", ", baseStats);
                             string learnsetLevelingUpOutput = string.Join(", ", learnsetLevelingUp);
-                            //string learnsetTMOutput = string.Join(", ", learnsetTM);
-                            string learnsetTMOutput = string.Join(", ", _learnsetTM);
+                            string learnsetTMOutput = string.Join(", ", learnsetTM);
 
                             var outputInfo = $"{pokedexNumber}-{name}-{typeOutput}-{category}-普通特性:{abilitiesOutput}-隐藏特性:{hiddenAbilitiesOutput}-经验增长速度:{levelingRate}" +
                                 $"-身高:{height}米-体重:{weight}千克-体型:{shape}-图鉴颜色:{pokedexColor}-捕获率:{catchRate}-性别比例:{genderRatioOutput}-蛋群:{eggGroupsOutput}" +
@@ -1614,12 +1640,12 @@ namespace PokeDBBuilder
                                 $"-能使用的招式学习器:{learnsetTMOutput}";
                             Debug.WriteLine(outputInfo);
                             TB_Info.AppendText(outputInfo + "\r\n");
-                            Debug.WriteLine($"当前阶段：[获取基础信息]，已处理条目：{_count} / {pokeLinksList.Count}");
+                            Debug.WriteLine($"↑当前阶段：[获取基础信息]，已处理条目：{_count} / {pokeLinksList.Count}");
                             TB_Info.AppendText($"当前阶段：[获取基础信息]，已处理条目：{_count} / {pokeLinksList.Count}\r\n");
                         }
                         else
                         {
-                            Debug.WriteLine($"当前阶段：[获取基础信息]，没有找到任何匹配元素，当前条目：{_count}");
+                            Debug.WriteLine($"↑当前阶段：[获取基础信息]，没有找到任何匹配元素，当前条目：{_count}");
                             TB_Info.AppendText($"当前阶段：[获取基础信息]，没有找到任何匹配元素，当前条目：{_count}\r\n");
                         }
                     }
@@ -1632,16 +1658,78 @@ namespace PokeDBBuilder
             }
         }
 
+        private void AddToListIfNotExist<T>(T newItem, List<T> list)
+        {
+            if (newItem == null)
+            {
+                return;
+            }
+
+            if (list.Count == 0)
+            {
+                list.Add(newItem);
+                return;
+            }
+
+            foreach (var item in list)
+            {
+                if (item == null)
+                {
+                    continue;
+                }
+
+                if (item.Equals(newItem))
+                {
+                    return;
+                }
+            }
+
+            list.Add(newItem);
+        }
+
+        private async Task SaveToDesktop(string content, string fileName)
+        {
+            fileName += ".txt";
+            var path = Environment.GetFolderPath(Environment.SpecialFolder.Desktop);
+            path = Path.Combine(path, fileName);
+            Console.WriteLine(path);
+            await using var streamWriter = new StreamWriter(path);
+            await streamWriter.WriteAsync(content);
+            streamWriter.Close();
+        }
+
+        private void Test()
+        {
+            var text = "Green:123456";
+            Debug.WriteLine(text);
+        }
+
         private async void Button1_Click(object sender, EventArgs e)
         {
             TB_Info.Clear();
+            TB_Info.AppendText($"开始采集内容，请耐心等待...\r\n");
 
             await GetPokeMoveNameAndIndex();
 
             await GetPokeLinks();
             await GetPokeBasicStats();
 
+            string unMatchingMoveNameText = string.Join(Environment.NewLine, unMatchingMoveName);
+            #if DEBUG
+            await SaveToDesktop(unMatchingMoveNameText, "unMatchingMoveName");
+#endif
+
             //TestPattern();
+
+            // test
+            var poke = pokeDatas[0];
+            var outputInfo = $"{poke.nationalNumber}-{poke.name}-{poke.type[0]}-{poke.category}-普通特性:{poke.abilities[0]}-隐藏特性:{poke.hiddenAbilities[0]}-经验增长速度:{poke.levelingRate}" +
+                                $"-身高:{poke.height}米-体重:{poke.weight}千克-体型:{poke.shape}-图鉴颜色:{poke.pokedexColor}-捕获率:{poke.catchRate}-性别比例:{poke.genderRatio[0]}-蛋群:{poke.eggGroups[0]}" +
+                                $"-孵化周期:{poke.hatchTime}-取得基础点数:{poke.EVYield[0]}-种族值:{poke.baseStats[0]}-图鉴描述:{poke.pokedexDescription}-可学会的招式:{poke.learnsetLevelingUp[0]}" +
+                                $"-能使用的招式学习器:{poke.learnsetTM[0]}";
+            Debug.WriteLine(outputInfo);
+
+            TB_Info.AppendText($"运行结束。\r\n");
         }
     }
 }

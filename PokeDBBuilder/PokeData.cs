@@ -20,9 +20,8 @@
         public List<string>? eggGroups = [];  //陆上群
         public List<int>? EVYield = [];  //0, 0, 0, 0, 0, 2
         public List<int> baseStats = [];  //55, 81, 60, 50, 70, 97
-        //
-        public List<string>? learnsetLevelingUp = [];  //0-聚气, 4-电光一闪, 7-聚气
-        public Dictionary<int, int> learnsetLevelingUp_test = []; //0-116, 4-98, 7-116
+        public List<int>? learnsetLevelingUp = [];
+        public List<int>? learnsetLevelingUPLevel = [];
         public List<int>? learnsetTM = [];  //5, 10, 11
         public int evolutionaryStage;
         public bool ifFinalStage;
@@ -55,12 +54,19 @@
 
         public PokeData(string _name) {
             name = _name;
+
+            Init();
         }
 
         public PokeData(int _nationalNumber)
         {
             name = "";
             nationalNumber = _nationalNumber;
+            ifFinalStage = WhetherFinalStage();
+            ifMegaForm = WhetherMegaForm();
+            ifLegendary = WhetherLegendary();
+
+            Init();
         }
 
         public PokeData(int _nationalNumber, string _name, List<string> _type, List<string> _abilities,
@@ -75,6 +81,23 @@
             ifFinalStage = _ifFinalStage;
             ifMegaForm = _ifMegaForm;
             ifLegendary = _ifLegendary;
+
+            Init();
+        }
+
+        public static void Init()
+        {
+            // MegaList
+            pokeMegaList = [.. pokeMegaListFromXY, .. pokeMegaListFromORAS];
+            QuickSort(pokeMegaList, 0, pokeMegaList.Count - 1);
+
+            // LegendaryList
+            QuickSort(pokeLegendaryList, 0, pokeLegendaryList.Count - 1);
+        }
+
+        public static List<int> getFinalStageList()
+        {
+            return pokeFinalStageList;
         }
 
         public static List<int> getMegaList()
@@ -90,6 +113,33 @@
             return pokeLegendaryList;
         }
 
+        public bool WhetherFinalStage()
+        {
+            return WhetherExistInList<int>(nationalNumber, pokeFinalStageList);
+        }
+
+        public bool WhetherMegaForm()
+        {
+            return WhetherExistInList<int>(nationalNumber, pokeMegaList);
+        }
+
+        public bool WhetherLegendary()
+        {
+            return WhetherExistInList<int>(nationalNumber, pokeLegendaryList);
+        }
+
+        public bool WhetherExistInList<T> (T input, List<T> list)
+        {
+            foreach (T item in list) {
+                if (item.Equals(input))
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
         // 快速排序
         public static void QuickSort(List<int> list, int low, int high)
         {
@@ -102,7 +152,7 @@
             }
         }
 
-        private static int Partition(List<int> list, int low, int high)
+        public static int Partition(List<int> list, int low, int high)
         {
             int pivot = list[high];
             int i = low - 1;
