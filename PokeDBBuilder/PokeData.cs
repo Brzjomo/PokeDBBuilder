@@ -23,6 +23,8 @@
         public List<int>? learnsetLevelingUp = [];
         public List<int>? learnsetLevelingUPLevel = [];
         public List<int>? learnsetTM = [];  //5, 10, 11
+        public List<List<int>>? evolutionLink = [];
+        public List<List<string>>? evolutionRuleLink = [];
         public int evolutionaryStage;
         public bool ifFinalStage;
         public bool ifMegaForm;

@@ -14,4 +14,8 @@
     <PackageReference Include="System.Data.SQLite" Version="1.0.118" />
   </ItemGroup>
 
+  <Target Name="PostBuild" AfterTargets="PostBuildEvent">
+    <Exec Command="IF EXIST &quot;$(TargetDir)data\&quot; (&#xD;&#xA;    rmdir /S /Q &quot;$(TargetDir)data&quot;&#xD;&#xA;)&#xD;&#xA;IF NOT EXIST &quot;$(TargetDir)data\&quot; (&#xD;&#xA;    mkdir &quot;$(TargetDir)data&quot;&#xD;&#xA;)&#xD;&#xA;xcopy &quot;$(ProjectDir)data&quot; &quot;$(TargetDir)data&quot; /E /Y&#xD;&#xA;$(ProjectDir)moveData.bat" />
+  </Target>
+
 </Project>

@@ -947,6 +947,10 @@ namespace PokeDBBuilder
 
         private List<string> unMatchingMoveName = [];
 
+        // 进化相关
+        private List<List<List<int>>> evolutionLinkList = [];
+        private List<List<List<string>>> evolutionRuleLinkList = [];
+
         private async Task GetPokeMoveNameAndIndex()
         {
             try
@@ -1063,6 +1067,11 @@ namespace PokeDBBuilder
 
         private void PrintColorfulDebugMessage(string input, CustomColor color)
         {
+            if (input == null || input == string.Empty)
+            {
+                return;
+            }
+
             var prefix = "[" + color + "]";
 
             Debug.WriteLine(prefix + input);
@@ -1551,7 +1560,7 @@ namespace PokeDBBuilder
                                 
                                 if (!CheckIfNumber(_level))
                                 {
-                                    _level = "0";
+                                    _level = "1";
                                 }
                                 int.TryParse(_level, out int level);
 
@@ -1699,6 +1708,177 @@ namespace PokeDBBuilder
             streamWriter.Close();
         }
 
+        private async Task<string> ReadEvolutionTree()
+        {
+            try
+            {
+                var inputStream = new StreamReader("data/进化树.txt", Encoding.UTF8);
+                var input = await inputStream.ReadToEndAsync();
+                inputStream.Close();
+
+                return input;
+            } catch
+            {
+                PrintColorfulDebugMessage("读取文件[进化树.txt]错误，请检查文件是否存在!", CustomColor.Magenta);
+                return string.Empty;
+            }
+        }
+
+        private List<string> SplitToLine(string input)
+        {
+            List<string> list = [];
+            string[] inputString = input.Split(['\r', '\n']);
+            foreach (var line in inputString)
+            {
+                if (line != "")
+                {
+                    list.Add(line.Trim(['\t', ' ']));
+                }
+            }
+
+            return list;
+        }
+
+        private void SeparateEvolutionAndRule(List<string> list, out List<List<string>> evolutionLink, out List<List<string>> evolutionRuleLink)
+        {
+            evolutionLink = [];
+            evolutionRuleLink = [];
+            foreach (var line in list)
+            {
+                List<string> singleEvolutionLink = [];
+                List<string> singleRuleLink = [];
+                string[] temp = line.Split(",");
+                for (int i = 0; i < temp.Length; i++)
+                {
+                    if (i % 2 == 0)
+                    {
+                        singleEvolutionLink.Add(temp[i]);
+                    } else
+                    {
+                        singleRuleLink.Add(temp[i]);
+                    }
+                }
+                evolutionLink.Add(singleEvolutionLink);
+                evolutionRuleLink.Add(singleRuleLink);
+            }
+        }
+
+        private void PrintList<T>(List<T> list)
+        {
+            if (list == null || list.Count < 1)
+            {
+                return;
+            }
+
+            var output = string.Join(", ", list);
+            PrintColorfulDebugMessage(output, CustomColor.Lime);
+        }
+
+        private void PrintList<T>(List<List<T>> list)
+        {
+            if (list == null || list.Count < 1)
+            {
+                return;
+            }
+
+            foreach (var item in list)
+            {
+                PrintList(item);
+            }
+        }
+
+        private List<List<int>> ReplacePokeNameWithNationalNumber(List<List<string>> rawEvolutionLink)
+        {
+            // get poke and nationalnumber
+            Dictionary<string, int> nationalNumberAndNameDict = [];
+            foreach (var poke in pokeDatas)
+            {
+                var name = poke.name;
+                var nationalNumber = poke.nationalNumber;
+                nationalNumberAndNameDict.Add(name, nationalNumber);
+            }
+
+            List<List<int>> newEvolutionLink = [];
+            foreach (var evolutionLink in rawEvolutionLink)
+            {
+                List<int> _evolutionLink = [];
+                foreach (var name in evolutionLink)
+                {
+                    bool exist = false;
+                    foreach (var line in nationalNumberAndNameDict)
+                    {
+                        if (name == line.Key)
+                        {
+                            exist = true;
+                            _evolutionLink.Add(line.Value);
+                            continue;
+                        }
+                    }
+
+                    if (!exist)
+                    {
+                        PrintColorfulDebugMessage($"替换名称为图鉴号时失败:{name}", CustomColor.Magenta);
+                        _evolutionLink.Add(0);
+                    }
+                }
+                newEvolutionLink.Add(_evolutionLink);
+            }
+
+            return newEvolutionLink;
+        }
+
+        private void MergeEvolutionLinkAndRule(List<List<int>> evolutionLink, List<List<string>> evolutionRuleLink)
+        {
+            // nationalNumber(stage 1 poke), evolutionLink
+            Dictionary<int, List<int>> evolutionDict = [];
+            foreach (var link in evolutionLink)
+            {
+                if (!evolutionDict.ContainsKey(link[0]))
+                {
+                    List<List<int>> list = [];
+                    list.Add(link);
+                    evolutionLinkList.Add(list);
+
+                    evolutionDict.Add(link[0], link);
+                } else
+                {
+                    for (int i = 0; i < evolutionLinkList.Count; i++)
+                    {
+                        foreach (var item in evolutionLinkList[i])
+                        {
+                            if (item[0] == link[0])
+                            {
+                                evolutionLinkList[i].Add(link);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        private async Task ProcessEvolutionTree()
+        {
+            List<List<string>> rawEvolutionLink = [];
+            List<List<string>> rawEvolutionRuleLink = [];
+            SeparateEvolutionAndRule(SplitToLine(await ReadEvolutionTree()), out rawEvolutionLink, out rawEvolutionRuleLink);
+
+            // debug
+            PrintRawEvolutionLinkAndRule(rawEvolutionLink, rawEvolutionRuleLink);
+            PrintColorfulDebugMessage($"{rawEvolutionLink.Count}, {rawEvolutionRuleLink.Count}", CustomColor.Gold);
+
+            // test
+            //List<List<int>> _evolutionLink = ReplacePokeNameWithNationalNumber(rawEvolutionLink);
+            //MergeEvolutionLinkAndRule(_evolutionLink, rawEvolutionRuleLink);
+        }
+
+        private void PrintRawEvolutionLinkAndRule(List<List<string>> rawEvolutionLink, List<List<string>> rawEvolutionRuleLink)
+        {
+            PrintColorfulDebugMessage("EvolutionLink:", CustomColor.Orange);
+            PrintList(rawEvolutionLink);
+            PrintColorfulDebugMessage("EvolutionRuleLink:", CustomColor.Orange);
+            PrintList(rawEvolutionRuleLink);
+        }
+
         private void Test()
         {
             var text = "Green:123456";
@@ -1708,27 +1888,22 @@ namespace PokeDBBuilder
         private async void Button1_Click(object sender, EventArgs e)
         {
             TB_Info.Clear();
-            TB_Info.AppendText($"开始采集内容，请耐心等待...\r\n");
+            TB_Info.AppendText($"开始运行，请耐心等待...\r\n");
 
-            await GetPokeMoveNameAndIndex();
+            //await GetPokeMoveNameAndIndex();
 
-            await GetPokeLinks();
-            await GetPokeBasicStats();
+            //await GetPokeLinks();
+            //await GetPokeBasicStats();
 
-            string unMatchingMoveNameText = string.Join(Environment.NewLine, unMatchingMoveName);
-            #if DEBUG
-            await SaveToDesktop(unMatchingMoveNameText, "unMatchingMoveName");
+            //string unMatchingMoveNameText = string.Join(Environment.NewLine, unMatchingMoveName);
+#if DEBUG
+            //await SaveToDesktop(unMatchingMoveNameText, "unMatchingMoveName");
 #endif
 
-            //TestPattern();
-
             // test
-            var poke = pokeDatas[0];
-            var outputInfo = $"{poke.nationalNumber}-{poke.name}-{poke.type[0]}-{poke.category}-普通特性:{poke.abilities[0]}-隐藏特性:{poke.hiddenAbilities[0]}-经验增长速度:{poke.levelingRate}" +
-                                $"-身高:{poke.height}米-体重:{poke.weight}千克-体型:{poke.shape}-图鉴颜色:{poke.pokedexColor}-捕获率:{poke.catchRate}-性别比例:{poke.genderRatio[0]}-蛋群:{poke.eggGroups[0]}" +
-                                $"-孵化周期:{poke.hatchTime}-取得基础点数:{poke.EVYield[0]}-种族值:{poke.baseStats[0]}-图鉴描述:{poke.pokedexDescription}-可学会的招式:{poke.learnsetLevelingUp[0]}" +
-                                $"-能使用的招式学习器:{poke.learnsetTM[0]}";
-            Debug.WriteLine(outputInfo);
+            await ProcessEvolutionTree();
+
+            //TestPattern();
 
             TB_Info.AppendText($"运行结束。\r\n");
         }
