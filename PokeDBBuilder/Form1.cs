@@ -1,9 +1,11 @@
 using HtmlAgilityPack;
 using OpenCCNET;
+using System.Collections.Generic;
 using System.Data.SQLite;
 using System.Diagnostics;
 using System.Text;
 using System.Text.RegularExpressions;
+using static System.Windows.Forms.LinkLabel;
 using Application = System.Windows.Forms.Application;
 using HtmlDocument = HtmlAgilityPack.HtmlDocument;
 
@@ -1114,7 +1116,7 @@ namespace PokeDBBuilder
                                 TB_Info.AppendText($"全国图鉴号: {firstCell}, 名称: {secondCell}, 链接: {link}\r\n");
 
                                 // debug
-                                if (_count >= 4)
+                                if (_count >= 18)
                                 {
                                     return;
                                 }
@@ -1565,8 +1567,7 @@ namespace PokeDBBuilder
                                 int.TryParse(_level, out int level);
 
                                 var move = td[2].Descendants("a").First().InnerText.Trim();
-                                move = HantToHans(move);
-                                ReplaceOldMoveNameWithNew(move);
+                                move = ReplaceOldMoveNameWithNew(HantToHans(move));
 
                                 var index = GetMoveIndexFromName(move);
 
@@ -1796,6 +1797,7 @@ namespace PokeDBBuilder
                 var name = poke.name;
                 var nationalNumber = poke.nationalNumber;
                 nationalNumberAndNameDict.Add(name, nationalNumber);
+                //Debug.WriteLine($"{nationalNumber}-{name}");
             }
 
             List<List<int>> newEvolutionLink = [];
@@ -1829,26 +1831,34 @@ namespace PokeDBBuilder
 
         private void MergeEvolutionLinkAndRule(List<List<int>> evolutionLink, List<List<string>> evolutionRuleLink)
         {
-            // nationalNumber(stage 1 poke), evolutionLink
-            Dictionary<int, List<int>> evolutionDict = [];
-            foreach (var link in evolutionLink)
-            {
-                if (!evolutionDict.ContainsKey(link[0]))
-                {
-                    List<List<int>> list = [];
-                    list.Add(link);
-                    evolutionLinkList.Add(list);
+            evolutionLinkList.Clear();
+            evolutionRuleLinkList.Clear();
 
-                    evolutionDict.Add(link[0], link);
+            Dictionary<int, List<int>> evolutionDict = [];
+            for (int i = 0; i < evolutionLink.Count; i++)
+            {
+                if (!evolutionDict.ContainsKey(evolutionLink[i][0]))
+                {
+                    List<List<int>> eList = [];
+                    eList.Add(evolutionLink[i]);
+                    evolutionLinkList.Add(eList);
+
+                    List<List<string>> rList = [];
+                    rList.Add(evolutionRuleLink[i]);
+                    evolutionRuleLinkList.Add(rList);
+
+                    evolutionDict.Add(evolutionLink[i][0], evolutionLink[i]);
                 } else
                 {
-                    for (int i = 0; i < evolutionLinkList.Count; i++)
+                    List<List<List<int>>> copyLink = evolutionLinkList.Select(innerList => innerList.Select(innerInnerList => new List<int>(innerInnerList)).ToList()).ToList();
+                    for (int j = 0; j < copyLink.Count; j++)
                     {
-                        foreach (var item in evolutionLinkList[i])
+                        foreach (var link in copyLink[j])
                         {
-                            if (item[0] == link[0])
+                            if (link[0] == evolutionLink[i][0])
                             {
-                                evolutionLinkList[i].Add(link);
+                                evolutionLinkList[j].Add(evolutionLink[i]);
+                                evolutionRuleLinkList[j].Add(evolutionRuleLink[i]);
                             }
                         }
                     }
@@ -1862,27 +1872,41 @@ namespace PokeDBBuilder
             List<List<string>> rawEvolutionRuleLink = [];
             SeparateEvolutionAndRule(SplitToLine(await ReadEvolutionTree()), out rawEvolutionLink, out rawEvolutionRuleLink);
 
-            // debug
-            PrintRawEvolutionLinkAndRule(rawEvolutionLink, rawEvolutionRuleLink);
-            PrintColorfulDebugMessage($"{rawEvolutionLink.Count}, {rawEvolutionRuleLink.Count}", CustomColor.Gold);
+            // 分别存储原始进化链和进化规则链到DB新表
 
-            // test
-            //List<List<int>> _evolutionLink = ReplacePokeNameWithNationalNumber(rawEvolutionLink);
-            //MergeEvolutionLinkAndRule(_evolutionLink, rawEvolutionRuleLink);
+            // debug
+            //PrintRawEvolutionLinkAndRule(rawEvolutionLink, rawEvolutionRuleLink);
+            PrintColorfulDebugMessage($"rawEvolutionLink长度：{rawEvolutionLink.Count}, rawEvolutionRuleLink长度：{rawEvolutionRuleLink.Count}", CustomColor.Gold);
+
+            // 合并同家族进化链
+            List<List<int>> _evolutionLink = ReplacePokeNameWithNationalNumber(rawEvolutionLink);
+            MergeEvolutionLinkAndRule(_evolutionLink, rawEvolutionRuleLink);
         }
 
         private void PrintRawEvolutionLinkAndRule(List<List<string>> rawEvolutionLink, List<List<string>> rawEvolutionRuleLink)
         {
-            PrintColorfulDebugMessage("EvolutionLink:", CustomColor.Orange);
+            PrintColorfulDebugMessage("进化链:", CustomColor.Orange);
             PrintList(rawEvolutionLink);
-            PrintColorfulDebugMessage("EvolutionRuleLink:", CustomColor.Orange);
+            PrintColorfulDebugMessage("进化规则链:", CustomColor.Orange);
             PrintList(rawEvolutionRuleLink);
         }
 
-        private void Test()
+        private void PrintEvolutionLinkAndRule(List<List<int>> evolutionLink, List<List<string>> evolutionRuleLink)
         {
-            var text = "Green:123456";
-            Debug.WriteLine(text);
+            PrintColorfulDebugMessage("进化链:", CustomColor.Orange);
+            PrintList(evolutionLink);
+            PrintColorfulDebugMessage("进化规则链:", CustomColor.Orange);
+            PrintList(evolutionRuleLink);
+        }
+
+        private static bool firstRun = true;
+        private async Task CollectOnlineContent()
+        {
+            firstRun = false;
+
+            await GetPokeMoveNameAndIndex();
+            await GetPokeLinks();
+            await GetPokeBasicStats();
         }
 
         private async void Button1_Click(object sender, EventArgs e)
@@ -1890,18 +1914,34 @@ namespace PokeDBBuilder
             TB_Info.Clear();
             TB_Info.AppendText($"开始运行，请耐心等待...\r\n");
 
-            //await GetPokeMoveNameAndIndex();
+            if (firstRun)
+            {
+                await CollectOnlineContent();
 
-            //await GetPokeLinks();
-            //await GetPokeBasicStats();
-
-            //string unMatchingMoveNameText = string.Join(Environment.NewLine, unMatchingMoveName);
+                string unMatchingMoveNameText = string.Join(Environment.NewLine, unMatchingMoveName);
 #if DEBUG
-            //await SaveToDesktop(unMatchingMoveNameText, "unMatchingMoveName");
+                await SaveToDesktop(unMatchingMoveNameText, "unMatchingMoveName");
 #endif
+            }
 
-            // test
-            await ProcessEvolutionTree();
+            try
+            {
+                await ProcessEvolutionTree();
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine(ex.ToString());
+                return;
+            }
+
+            PrintColorfulDebugMessage($"evolutionLinkList长度：{evolutionLinkList.Count.ToString()}", CustomColor.Gold);
+            PrintColorfulDebugMessage($"evolutionRuleLinkList长度：{evolutionRuleLinkList.Count.ToString()}", CustomColor.Gold);
+            PrintEvolutionLinkAndRule(evolutionLinkList[0], evolutionRuleLinkList[0]);
+            PrintEvolutionLinkAndRule(evolutionLinkList[1], evolutionRuleLinkList[1]);
+            PrintEvolutionLinkAndRule(evolutionLinkList[2], evolutionRuleLinkList[2]);
+            PrintEvolutionLinkAndRule(evolutionLinkList[3], evolutionRuleLinkList[3]);
+            PrintEvolutionLinkAndRule(evolutionLinkList[4], evolutionRuleLinkList[4]);
+            PrintEvolutionLinkAndRule(evolutionLinkList[5], evolutionRuleLinkList[5]);
 
             //TestPattern();
 
