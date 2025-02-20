@@ -41,8 +41,8 @@
             BTN_Open_F1 = new Button();
             LLB_File_1 = new LinkLabel();
             TB_2 = new TabPage();
-            button1 = new Button();
             TB_Info = new TextBox();
+            button1 = new Button();
             tabControl1.SuspendLayout();
             TB_1.SuspendLayout();
             TB_2.SuspendLayout();
@@ -126,7 +126,7 @@
             label2.Name = "label2";
             label2.Size = new Size(126, 21);
             label2.TabIndex = 5;
-            label2.Text = "宝可梦其他数据:";
+            label2.Text = "宝可梦个体数据:";
             // 
             // label1
             // 
@@ -185,23 +185,13 @@
             // 
             TB_2.Controls.Add(TB_Info);
             TB_2.Controls.Add(button1);
-            TB_2.Location = new Point(4, 30);
+            TB_2.Location = new Point(4, 26);
             TB_2.Name = "TB_2";
             TB_2.Padding = new Padding(3);
-            TB_2.Size = new Size(460, 266);
+            TB_2.Size = new Size(460, 270);
             TB_2.TabIndex = 1;
             TB_2.Text = "从网络生成";
             TB_2.UseVisualStyleBackColor = true;
-            // 
-            // button1
-            // 
-            button1.Location = new Point(304, 210);
-            button1.Name = "button1";
-            button1.Size = new Size(150, 50);
-            button1.TabIndex = 0;
-            button1.Text = "生成";
-            button1.UseVisualStyleBackColor = true;
-            button1.Click += Button1_Click;
             // 
             // TB_Info
             // 
@@ -212,6 +202,16 @@
             TB_Info.ScrollBars = ScrollBars.Vertical;
             TB_Info.Size = new Size(448, 198);
             TB_Info.TabIndex = 1;
+            // 
+            // button1
+            // 
+            button1.Location = new Point(304, 210);
+            button1.Name = "button1";
+            button1.Size = new Size(150, 50);
+            button1.TabIndex = 0;
+            button1.Text = "生成";
+            button1.UseVisualStyleBackColor = true;
+            button1.Click += Button1_Click;
             // 
             // Form1
             // 

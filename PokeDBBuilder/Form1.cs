@@ -667,7 +667,7 @@ namespace PokeDBBuilder
 
             // 更新普通数据
             List<string> pokeNameList = [];
-
+            Debug.WriteLine($"normalPokes.Count: {normalPokes.Count}");
             foreach (var item in normalPokes)
             {
                 var pokeName = item[1].Trim();
@@ -683,6 +683,7 @@ namespace PokeDBBuilder
                 var poke = new PokeData(pokeName);
 
                 // 获取属性
+                Debug.WriteLine($"获取属性");
                 string[] temp_type = item[7].Split(':')[1].Split('/');
                 foreach (var line in temp_type)
                 {
@@ -693,6 +694,7 @@ namespace PokeDBBuilder
                 }
 
                 // 获取特性
+                Debug.WriteLine($"获取特性");
                 string[] temp_abilities = item[8].Split(':')[1].Split('|');
                 foreach (var line in temp_abilities)
                 {
@@ -708,20 +710,25 @@ namespace PokeDBBuilder
                 }
 
                 // 获取baseStats
+                Debug.WriteLine($"获取baseStats");
                 string[] temp_baseStats = item[5].Split(':')[1].Trim().Split('.');
+                Debug.WriteLine($"{poke.name}");
                 for (int i = 0; i < temp_baseStats.Length; i++)
                 {
                     try
                     {
-                        poke.baseStats[i] = Int16.Parse(temp_baseStats[i]);
+                        //poke.baseStats[i] = Int16.Parse(temp_baseStats[i]);
+                        poke.baseStats.Add(Int16.Parse(temp_baseStats[i]));
                     }
-                    catch
+                    catch (Exception ex)
                     {
+                        Debug.WriteLine($"baseStats不是一个有效的值: {ex.Message}");
                         MessageBox.Show("baseStats不是一个有效的值", "错误", MessageBoxButtons.OK, MessageBoxIcon.Error);
                     }
                 }
 
                 // 获取进化阶段
+                Debug.WriteLine($"获取进化阶段");
                 string stage = item[2].Split(':')[1].Trim();
                 try
                 {
@@ -733,6 +740,7 @@ namespace PokeDBBuilder
                 }
 
                 // 查询全国图鉴编号
+                Debug.WriteLine($"查询全国图鉴编号");
                 GetNationalNumberAndNameDict(DBPokeTable, nationalNumberAndNamesDict);
 
                 foreach (var kvp in nationalNumberAndNamesDict)
@@ -744,6 +752,7 @@ namespace PokeDBBuilder
                 }
 
                 // 判断是否最终阶段
+                Debug.WriteLine($"判断是否最终阶段");
                 if (PokeData.pokeFinalStageList.Contains(poke.nationalNumber))
                 {
                     poke.ifFinalStage = true;
@@ -754,9 +763,11 @@ namespace PokeDBBuilder
                 }
 
                 // mega
+                Debug.WriteLine($"判断是否mega");
                 poke.ifMegaForm = false;
 
                 // 判断是否传说
+                Debug.WriteLine($"判断是否传说");
                 if (PokeData.pokeLegendaryList.Contains(poke.nationalNumber))
                 {
                     poke.ifLegendary = true;
@@ -767,6 +778,7 @@ namespace PokeDBBuilder
                 }
 
                 // 增加至列表
+                Debug.WriteLine($"增加至列表");
                 pokeDatas.Add(poke);
             }
 
@@ -818,7 +830,8 @@ namespace PokeDBBuilder
                 {
                     try
                     {
-                        poke.baseStats[i] = Int16.Parse(temp_baseStats[i]);
+                        //poke.baseStats[i] = Int16.Parse(temp_baseStats[i]);
+                        poke.baseStats.Add(Int16.Parse(temp_baseStats[i]));
                     }
                     catch
                     {
