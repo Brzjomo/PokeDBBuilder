@@ -43,6 +43,9 @@
             TB_2 = new TabPage();
             TB_Info = new TextBox();
             button1 = new Button();
+            label4 = new Label();
+            BTN_Open_F4 = new Button();
+            LLB_File_4 = new LinkLabel();
             tabControl1.SuspendLayout();
             TB_1.SuspendLayout();
             TB_2.SuspendLayout();
@@ -55,11 +58,14 @@
             tabControl1.Location = new Point(12, 12);
             tabControl1.Name = "tabControl1";
             tabControl1.SelectedIndex = 0;
-            tabControl1.Size = new Size(468, 300);
+            tabControl1.Size = new Size(468, 373);
             tabControl1.TabIndex = 0;
             // 
             // TB_1
             // 
+            TB_1.Controls.Add(label4);
+            TB_1.Controls.Add(BTN_Open_F4);
+            TB_1.Controls.Add(LLB_File_4);
             TB_1.Controls.Add(label3);
             TB_1.Controls.Add(BTN_Open_F3);
             TB_1.Controls.Add(LLB_File_3);
@@ -73,7 +79,7 @@
             TB_1.Location = new Point(4, 30);
             TB_1.Name = "TB_1";
             TB_1.Padding = new Padding(3);
-            TB_1.Size = new Size(460, 266);
+            TB_1.Size = new Size(460, 339);
             TB_1.TabIndex = 0;
             TB_1.Text = "从txt生成";
             TB_1.UseVisualStyleBackColor = true;
@@ -111,7 +117,7 @@
             // 
             // BTN_Gen
             // 
-            BTN_Gen.Location = new Point(29, 166);
+            BTN_Gen.Location = new Point(29, 233);
             BTN_Gen.Name = "BTN_Gen";
             BTN_Gen.Size = new Size(404, 77);
             BTN_Gen.TabIndex = 6;
@@ -213,11 +219,42 @@
             button1.UseVisualStyleBackColor = true;
             button1.Click += Button1_Click;
             // 
+            // label4
+            // 
+            label4.AutoSize = true;
+            label4.Location = new Point(29, 171);
+            label4.Name = "label4";
+            label4.Size = new Size(126, 21);
+            label4.TabIndex = 12;
+            label4.Text = "宝可梦进化数据:";
+            // 
+            // BTN_Open_F4
+            // 
+            BTN_Open_F4.Location = new Point(328, 164);
+            BTN_Open_F4.Name = "BTN_Open_F4";
+            BTN_Open_F4.Size = new Size(105, 34);
+            BTN_Open_F4.TabIndex = 11;
+            BTN_Open_F4.Text = "打开";
+            BTN_Open_F4.UseVisualStyleBackColor = true;
+            BTN_Open_F4.Click += BTN_Open_F4_Click;
+            // 
+            // LLB_File_4
+            // 
+            LLB_File_4.ActiveLinkColor = Color.Red;
+            LLB_File_4.LinkColor = Color.FromArgb(255, 128, 0);
+            LLB_File_4.Location = new Point(161, 171);
+            LLB_File_4.Name = "LLB_File_4";
+            LLB_File_4.Size = new Size(151, 21);
+            LLB_File_4.TabIndex = 10;
+            LLB_File_4.TabStop = true;
+            LLB_File_4.Text = "未打开";
+            LLB_File_4.LinkClicked += LLB_File_4_LinkClicked;
+            // 
             // Form1
             // 
             AutoScaleDimensions = new SizeF(10F, 21F);
             AutoScaleMode = AutoScaleMode.Font;
-            ClientSize = new Size(494, 327);
+            ClientSize = new Size(494, 397);
             Controls.Add(tabControl1);
             Font = new Font("Microsoft YaHei UI", 12F);
             FormBorderStyle = FormBorderStyle.FixedSingle;
@@ -250,5 +287,8 @@
         private TabPage TB_2;
         private Button button1;
         private TextBox TB_Info;
+        private Label label4;
+        private Button BTN_Open_F4;
+        private LinkLabel LLB_File_4;
     }
 }

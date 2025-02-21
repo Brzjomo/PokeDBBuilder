@@ -20,6 +20,7 @@ namespace PokeDBBuilder
         private static string pokeNameFilePath = string.Empty;
         private static string pokeMegaNameFilePath = string.Empty;
         private static string pokeDataFilePath = string.Empty;
+        private static string pokeEvolutionFilePath = string.Empty;
 
         private static List<string> pokeNameList = [];
         private static List<string> pokeMegaNameList = [];
@@ -358,6 +359,26 @@ namespace PokeDBBuilder
             }
         }
 
+        private void LLB_File_4_LinkClicked(object sender, LinkLabelLinkClickedEventArgs e)
+        {
+            if (pokeEvolutionFilePath != "")
+            {
+                // 将filePath中的文件夹路径提取出来
+                string[] fileName = pokeEvolutionFilePath.Split("\\");
+                string fileFolderPath = pokeEvolutionFilePath.Replace(fileName[^1], "");
+
+                // 打开文件夹
+                try
+                {
+                    System.Diagnostics.Process.Start("explorer", fileFolderPath);
+                }
+                catch
+                {
+                    MessageBox.Show("路径错误！请确认路径是否存在！", "路径错误", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                }
+            }
+        }
+
         private void BTN_Open_F1_Click(object sender, EventArgs e)
         {
             // 打开文件
@@ -421,6 +442,28 @@ namespace PokeDBBuilder
                 string[] fileName = openFileDialog.FileName.Split("\\");
                 string openFileName = fileName[^1];
                 LLB_File_3.Text = openFileName;
+            }
+        }
+
+        private void BTN_Open_F4_Click(object sender, EventArgs e)
+        {
+            // 打开文件
+            OpenFileDialog openFileDialog = new()
+            {
+                FileName = "选择一个txt文件",
+                Filter = "txt文件(*.txt)|*.txt",
+                Title = "打开txt文件"
+            };
+
+            if (openFileDialog.ShowDialog() == DialogResult.OK)
+            {
+                // 更新文件夹
+                pokeEvolutionFilePath = openFileDialog.FileName;
+
+                // 更新文件名
+                string[] fileName = openFileDialog.FileName.Split("\\");
+                string openFileName = fileName[^1];
+                LLB_File_4.Text = openFileName;
             }
         }
 
@@ -1015,7 +1058,8 @@ namespace PokeDBBuilder
                                     {
                                         continue;
                                     }
-                                } catch
+                                }
+                                catch
                                 {
                                     continue;
                                 }
@@ -1235,12 +1279,14 @@ namespace PokeDBBuilder
                         {
                             return description;
                         }
-                    } else
+                    }
+                    else
                     {
                         return string.Empty;
                     }
                 }
-            } else
+            }
+            else
             {
                 return description;
             }
@@ -1374,7 +1420,8 @@ namespace PokeDBBuilder
                                 {
                                     hiddenAbilities.Add(_ability.InnerText);
                                 }
-                            } else
+                            }
+                            else
                             {
                                 hiddenAbilitiesExist = false;
 
@@ -1438,7 +1485,7 @@ namespace PokeDBBuilder
                                 var row13 = trRows[12];
                                 var row13tr2 = row13.Descendants("tr").ToList()[1];
                                 var _EVYield = row13tr2.Elements("td").ToList();
-                                foreach(var node in _EVYield)
+                                foreach (var node in _EVYield)
                                 {
                                     var _ev = node.InnerText.Trim();
                                     int.TryParse(ExtractTailNumber(_ev), out var ev);
@@ -1554,7 +1601,8 @@ namespace PokeDBBuilder
                                 }
 
                                 pokedexDescription = description;
-                            } else
+                            }
+                            else
                             {
                                 Debug.WriteLine("descriptionTable为空");
                                 pokedexDescription = string.Empty;
@@ -1572,7 +1620,7 @@ namespace PokeDBBuilder
                             {
                                 var td = node.Elements("td").ToList();
                                 var _level = td.First().InnerText.Trim();
-                                
+
                                 if (!CheckIfNumber(_level))
                                 {
                                     _level = "1";
@@ -1731,7 +1779,8 @@ namespace PokeDBBuilder
                 inputStream.Close();
 
                 return input;
-            } catch
+            }
+            catch
             {
                 PrintColorfulDebugMessage("读取文件[进化树.txt]错误，请检查文件是否存在!", CustomColor.Magenta);
                 return string.Empty;
@@ -1767,7 +1816,8 @@ namespace PokeDBBuilder
                     if (i % 2 == 0)
                     {
                         singleEvolutionLink.Add(temp[i]);
-                    } else
+                    }
+                    else
                     {
                         singleRuleLink.Add(temp[i]);
                     }
@@ -1861,7 +1911,8 @@ namespace PokeDBBuilder
                     evolutionRuleLinkList.Add(rList);
 
                     evolutionDict.Add(evolutionLink[i][0], evolutionLink[i]);
-                } else
+                }
+                else
                 {
                     List<List<List<int>>> copyLink = evolutionLinkList.Select(innerList => innerList.Select(innerInnerList => new List<int>(innerInnerList)).ToList()).ToList();
                     for (int j = 0; j < copyLink.Count; j++)
